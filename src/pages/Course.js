@@ -13,22 +13,84 @@ import ChatBox from "../components/ChatBox";
 import Chart from "../components/Chart";
 // constants
 import { COMPANY } from "../constants/vars";
-import { BASE, COURSE_GET_ENDPOINT, LECTURE_GET_ENDPOINT, LECTURE_NEW_ENDPOINT, FILE_UPLOAD_ENDPOINT, ATTENDANCE_NEW_ENDPOINT, MATERIAL_GET_ENDPOINT, MATERIAL_NEW_ENDPOINT, MESSAGE_NEW_ENDPOINT, MESSAGE_GET_ENDPOINT, RESPONSE_NEWS_ENDPOINT, TEST_GET_ENDPOINT, QUESTION_GET_ENDPOINT, DOUBT_GET_ENDPOINT, DOUBT_NEW_ENDPOINT } from "../constants/endpoints";
+import {
+  BASE,
+  BASEML,
+  COURSE_GET_ENDPOINT,
+  LECTURE_GET_ENDPOINT,
+  LECTURE_NEW_ENDPOINT,
+  FILE_UPLOAD_ENDPOINT,
+  ATTENDANCE_NEW_ENDPOINT,
+  MATERIAL_GET_ENDPOINT,
+  MATERIAL_NEW_ENDPOINT,
+  MESSAGE_NEW_ENDPOINT,
+  MESSAGE_GET_ENDPOINT,
+  RESPONSE_NEWS_ENDPOINT,
+  TEST_GET_ENDPOINT,
+  QUESTION_GET_ENDPOINT,
+  DOUBT_GET_ENDPOINT,
+  DOUBT_NEW_ENDPOINT,
+} from "../constants/endpoints";
 import { UPLOAD_URL } from "../constants/urls";
 //utils
 import { truncate } from "../utils";
 // apis
-import { getDoubtsFromImage, getAttendanceFromImage, getResponsesFromImage, getFilteredMessages } from "../apis/multimedia";
+import {
+  getDoubtsFromImage,
+  getAttendanceFromImage,
+  getResponsesFromImage,
+  getFilteredMessages,
+} from "../apis/multimedia";
 // mui
-import { Box, Container, Grid, Paper, Button, Typography, List, ListItemText, Stack, Dialog, DialogContent, DialogTitle, Badge, IconButton, TextField, ListItemButton, ListItemAvatar, Avatar, Divider, Tooltip, CircularProgress, Drawer, Autocomplete } from "@mui/material";
+import {
+  Box,
+  Container,
+  Grid,
+  Paper,
+  Button,
+  Typography,
+  List,
+  ListItemText,
+  Stack,
+  ListItem,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Badge,
+  IconButton,
+  TextField,
+  ListItemButton,
+  ListItemAvatar,
+  Avatar,
+  Divider,
+  Tooltip,
+  CircularProgress,
+  Drawer,
+  Autocomplete,
+} from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
-import { VideoCall, Close, Camera, Add, FileCopy, FilterAlt, FilterAltOff, Fullscreen, Checklist, PanTool, QuestionAnswer } from "@mui/icons-material";
+import {
+  VideoCall,
+  Close,
+  Camera,
+  Add,
+  FileCopy,
+  FilterAlt,
+  FilterAltOff,
+  Fullscreen,
+  Checklist,
+  PanTool,
+  QuestionAnswer,
+} from "@mui/icons-material";
 // vars
 const socket = io(BASE);
 
 function PaperComponent(props) {
   return (
-    <Draggable handle="#draggable-dialog-title" cancel={'[class*="MuiDialogContent-root"]'}>
+    <Draggable
+      handle="#draggable-dialog-title"
+      cancel={'[class*="MuiDialogContent-root"]'}
+    >
       <Paper {...props} />
     </Draggable>
   );
@@ -57,6 +119,7 @@ const Course = () => {
   const [doubts, setDoubts] = useState(0);
   const [responses, setResponses] = useState([]);
   const [classStrength, setClassStrength] = useState(0);
+  const [studentPresent, setStudentPresent] = useState([]);
   const [chartData, setChartData] = useState([{ doubts: 0, time: 0.0 }]);
   const [capturedImage, setCapturedImage] = useState(null);
   const [materials, setMaterials] = useState([]);
@@ -78,7 +141,10 @@ const Course = () => {
       try {
         const query = { _id: courseId };
         axios
-          .get(COURSE_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(COURSE_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             if (res.data.data.length) setCourse(res.data.data[0]);
             else setCourse(null);
@@ -100,7 +166,12 @@ const Course = () => {
         setIsLoading(true);
         const filteredMessages = await getFilteredMessages(messages);
         setIsLoading(false);
-        setFilteredMessages(filteredMessages.map((message) => ({ text: message, date: new Date().toISOString() })));
+        setFilteredMessages(
+          filteredMessages.map((message) => ({
+            text: message,
+            date: new Date().toISOString(),
+          }))
+        );
       } else {
         setFilteredMessages(messages);
       }
@@ -113,7 +184,10 @@ const Course = () => {
       try {
         const query = { lecture: lecture._id };
         axios
-          .get(MESSAGE_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(MESSAGE_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             setMessages(res.data.data);
             setFilteredMessages(res.data.data);
@@ -132,14 +206,23 @@ const Course = () => {
       try {
         const query = { lecture: lecture._id };
         axios
-          .get(DOUBT_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(DOUBT_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             if (res.data.data.length) {
               const processedDoubts = [{ doubts: 0, time: 0 }];
-              const doubts = res.data.data.map((doubt) => ({ doubts: Number(doubt.doubts), time: Number(doubt.time).toFixed(1) }));
+              const doubts = res.data.data.map((doubt) => ({
+                doubts: Number(doubt.doubts),
+                time: Number(doubt.time).toFixed(1),
+              }));
               doubts.forEach((doubt) => {
                 processedDoubts.push(doubt);
-                processedDoubts.push({ doubts: 0, time: (Number(doubt.time) + 0.1).toFixed(1) });
+                processedDoubts.push({
+                  doubts: 0,
+                  time: (Number(doubt.time) + 0.1).toFixed(1),
+                });
               });
               setChartData(processedDoubts);
             } else {
@@ -158,7 +241,10 @@ const Course = () => {
       try {
         const query = { lecture: lecture._id };
         axios
-          .get(TEST_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(TEST_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             if (res.data.data.length) {
               setTest(res.data.data[0]);
@@ -166,7 +252,10 @@ const Course = () => {
               try {
                 const query = { _id: { $in: res.data.data[0].questions } };
                 axios
-                  .get(QUESTION_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+                  .get(QUESTION_GET_ENDPOINT, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    params: { query: JSON.stringify(query) },
+                  })
                   .then((res) => {
                     if (res.data.data.length) {
                       setTestQuestion(res.data.data[0]);
@@ -204,7 +293,10 @@ const Course = () => {
       try {
         const query = { course: course._id };
         axios
-          .get(LECTURE_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(LECTURE_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             if (res.data.data.length) {
               setLecture(res.data.data[res.data.data.length - 1]);
@@ -227,7 +319,10 @@ const Course = () => {
       try {
         const query = { course: course._id };
         axios
-          .get(MATERIAL_GET_ENDPOINT, { headers: { Authorization: `Bearer ${token}` }, params: { query: JSON.stringify(query) } })
+          .get(MATERIAL_GET_ENDPOINT, {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { query: JSON.stringify(query) },
+          })
           .then((res) => {
             if (res.data.data.length) {
               setMaterials(res.data.data[0].files || []);
@@ -248,11 +343,18 @@ const Course = () => {
 
   useEffect(() => {
     socket.on("doubts", ({ doubts, time }) => {
-      setChartData((prev) => [...prev, { doubts, time: Number(time).toFixed(1) }, {doubts: 0, time: (Number(time) + 0.1).toFixed(1)}]);
+      setChartData((prev) => [
+        ...prev,
+        { doubts, time: Number(time).toFixed(1) },
+        { doubts: 0, time: (Number(time) + 0.1).toFixed(1) },
+      ]);
     });
     socket.on("message", ({ from, fromName, text, date }) => {
       setMessages((messages) => [...messages, { from, fromName, text, date }]);
-      setFilteredMessages((messages) => [...messages, { from, fromName, text, date }]);
+      setFilteredMessages((messages) => [
+        ...messages,
+        { from, fromName, text, date },
+      ]);
     });
     // join room
     socket.emit("join", { room: courseId });
@@ -281,10 +383,26 @@ const Course = () => {
     if (e?.preventDefault) {
       e.preventDefault();
       const text = e.target.text.value;
-      socket.emit("message", { room: courseId, from: user._id, fromName: user.name, text });
+      socket.emit("message", {
+        room: courseId,
+        from: user._id,
+        fromName: user.name,
+        text,
+      });
       e.target.reset();
       axios
-        .post(MESSAGE_NEW_ENDPOINT, { course: courseId, lecture: lecture?._id, from: user._id, fromName: user.name, text, date: new Date().toISOString() }, { headers: { Authorization: `Bearer ${token}` } })
+        .post(
+          MESSAGE_NEW_ENDPOINT,
+          {
+            course: courseId,
+            lecture: lecture?._id,
+            from: user._id,
+            fromName: user.name,
+            text,
+            date: new Date().toISOString(),
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
         .then((res) => {
           console.log("message created");
         })
@@ -292,10 +410,26 @@ const Course = () => {
           console.log(err);
         });
     } else if (typeof e === "string") {
-      socket.emit("message", { room: courseId, from: user._id, fromName: user.name, text: e });
+      socket.emit("message", {
+        room: courseId,
+        from: user._id,
+        fromName: user.name,
+        text: e,
+      });
       if (e.toLowerCase() !== "unable to transcribe")
         axios
-          .post(MESSAGE_NEW_ENDPOINT, { course: courseId, lecture: lecture?._id, from: user._id, fromName: user.name, text: e, date: new Date().toISOString() }, { headers: { Authorization: `Bearer ${token}` } })
+          .post(
+            MESSAGE_NEW_ENDPOINT,
+            {
+              course: courseId,
+              lecture: lecture?._id,
+              from: user._id,
+              fromName: user.name,
+              text: e,
+              date: new Date().toISOString(),
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
           .then((res) => {
             console.log("message created");
           })
@@ -316,7 +450,9 @@ const Course = () => {
     try {
       setIsLoading(true);
       axios
-        .post(LECTURE_NEW_ENDPOINT, edits, { headers: { Authorization: `Bearer ${token}` } })
+        .post(LECTURE_NEW_ENDPOINT, edits, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         .then((res) => {
           alert("Your lecture has been uploaded!");
           setLectures((lectures) => [res.data.data, ...lectures]);
@@ -344,14 +480,25 @@ const Course = () => {
       fileNames = [];
     // change file name for each file before uploading
     materialFiles.forEach((file, index) => {
-      const fileName = user.role + "." + user.email + ".material." + data.name + "." + index + "." + file.name.split(".").at(-1);
+      const fileName =
+        user.role +
+        "." +
+        user.email +
+        ".material." +
+        data.name +
+        "." +
+        index +
+        "." +
+        file.name.split(".").at(-1);
       fileNames.push(fileName);
       formData.append("files", file, fileName);
     });
     try {
       setIsLoading(true);
       axios
-        .post(FILE_UPLOAD_ENDPOINT, formData, { headers: { Authorization: `Bearer ${token}` } })
+        .post(FILE_UPLOAD_ENDPOINT, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
         .then((res) => {
           const urls = Object.values(res.data.data);
           if (urls.length) {
@@ -360,7 +507,9 @@ const Course = () => {
             materialData["files"] = fileNames;
             materialData["course"] = courseId;
             axios
-              .post(MATERIAL_NEW_ENDPOINT, materialData, { headers: { Authorization: `Bearer ${token}` } })
+              .post(MATERIAL_NEW_ENDPOINT, materialData, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
               .then((res) => {
                 setMaterials(res.data.data.files);
                 setMaterialsOpen(false);
@@ -398,7 +547,11 @@ const Course = () => {
       // store doubts
       try {
         axios
-          .post(DOUBT_NEW_ENDPOINT, { course: courseId, lecture: lecture?._id, doubts, time }, { headers: { Authorization: `Bearer ${token}` } })
+          .post(
+            DOUBT_NEW_ENDPOINT,
+            { course: courseId, lecture: lecture?._id, doubts, time },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
           .then((res) => {
             console.log("Doubts created");
           })
@@ -412,12 +565,21 @@ const Course = () => {
   };
 
   const handleAttendance = async () => {
-    if (lecture?._id && attendance?.length) {
+    if (lecture?._id && studentPresent?.length) {
       try {
         axios
-          .post(ATTENDANCE_NEW_ENDPOINT, { coordinator: user?._id, lecture: lecture._id, attendance, percentage: (attendance.length / classStrength) * 100 }, { headers: { Authorization: `Bearer ${token}` } })
+          .post(
+            ATTENDANCE_NEW_ENDPOINT,
+            {
+              coordinator: user?._id,
+              lecture: lecture._id,
+              studentPresent,
+              percentage: (studentPresent.length / classStrength) * 100,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
           .then(() => {
-            setAttendance([]);
+            setStudentPresent([]);
             setDoubtsOpen(false);
             setCapturedImage(null);
             alert("Attendance has been taken!");
@@ -437,16 +599,20 @@ const Course = () => {
   const handleResponses = () => {
     if (responses.length && test && testQuestion) {
       try {
-        axios.post(RESPONSE_NEWS_ENDPOINT, responses, { headers: { Authorization: `Bearer ${token}` } }).then((res) => {
-          if (res.data.data) {
-            setResponsesOpen(false);
-            setCapturedImage(null);
-            setDoubtsOpen(false);
-            alert("Your responses have been uploaded!");
-          } else {
-            alert("Your responses have NOT been uploaded!");
-          }
-        });
+        axios
+          .post(RESPONSE_NEWS_ENDPOINT, responses, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          .then((res) => {
+            if (res.data.data) {
+              setResponsesOpen(false);
+              setCapturedImage(null);
+              setDoubtsOpen(false);
+              alert("Your responses have been uploaded!");
+            } else {
+              alert("Your responses have NOT been uploaded!");
+            }
+          });
       } catch (err) {
         alert("Your responses have NOT been uploaded!");
       }
@@ -467,10 +633,44 @@ const Course = () => {
 
   const handleAttendanceCapture = async () => {
     setIsLoading(true);
+
+    // Capture the image as a screenshot
     const capturedImage = myStreamRef.current.getScreenshot();
+
+    // Convert the image to a blob
     const imageBlob = await fetch(capturedImage).then((r) => r.blob());
-    const attendance = await getAttendanceFromImage(imageBlob);
-    setAttendance(attendance);
+
+    // Create a FormData object to send the image as a file and roll numbers
+    const formData = new FormData();
+    formData.append("file", imageBlob, "attendance_image.png"); // 'file' should match the parameter in your backend function
+
+    let allStudentRoll = [];
+    for (let i = 0; i < classStrength; i++) {
+      allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
+    }
+    const rollNumbersToSend = allStudentRoll.filter(
+      (rollNumber) => !studentPresent.includes(rollNumber)
+    );
+
+    // Convert the roll numbers array to a JSON string and append to FormData
+    formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
+
+    // Send the image and roll numbers to the server
+    const response = await fetch(`${BASEML}/mcq-analysis`, {
+      method: "POST",
+      body: formData, // Send the FormData object as the request body
+    });
+
+    // Optionally handle the server's response
+    const attendance = await response.json();
+    console.log(attendance);
+    setStudentPresent((prevStudentPresent) => {
+      const newRollNumbers = new Set(prevStudentPresent);
+      attendance.extracted_roll_numbers.forEach((rollNumber) =>
+        newRollNumbers.add(rollNumber)
+      );
+      return Array.from(newRollNumbers).sort((a, b) => a - b);
+    });
     setIsLoading(false);
   };
 
@@ -480,7 +680,16 @@ const Course = () => {
       const capturedImage = myStreamRef.current.getScreenshot();
       const imageBlob = await fetch(capturedImage).then((r) => r.blob());
       const responses = await getResponsesFromImage(imageBlob);
-      const processedResponses = responses.map((response) => ({ test: test?._id, question: testQuestion._id, student: user?._id + "_" + response.roll, response: testQuestion.options.find((q) => q.key === response.response)?.value })).filter((response) => response.response && response.student);
+      const processedResponses = responses
+        .map((response) => ({
+          test: test?._id,
+          question: testQuestion._id,
+          student: user?._id + "_" + response.roll,
+          response: testQuestion.options.find(
+            (q) => q.key === response.response
+          )?.value,
+        }))
+        .filter((response) => response.response && response.student);
       setResponses(processedResponses);
       setIsLoading(false);
     }
@@ -499,7 +708,12 @@ const Course = () => {
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
                 <Stack direction="row" alignItems="center" spacing={1} pb={2}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Live Class
                   </Typography>
                   {user?.role === "teacher" ? (
@@ -520,7 +734,11 @@ const Course = () => {
                     </IconButton>
                   ) : null}
                 </Stack>
-                <Stack direction="row" alignItems="center" sx={{ position: "relative" }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  sx={{ position: "relative" }}
+                >
                   {lecture ? (
                     <YouTube
                       ref={youtubeRef}
@@ -536,13 +754,72 @@ const Course = () => {
                       }}
                     />
                   ) : null}
-                  {user?.role === "teacher" ? <video autoPlay muted ref={myStreamRef} style={{ width: "100%", height: "300px", objectFit: "cover", borderRadius: "5px" }} /> : null}
-                  {user?.role !== "teacher" ? <video autoPlay ref={peerStreamRef} style={{ width: "100%", height: "300px", objectFit: "cover", borderRadius: "5px" }} /> : null}
+                  {user?.role === "teacher" ? (
+                    <video
+                      autoPlay
+                      muted
+                      ref={myStreamRef}
+                      style={{
+                        width: "100%",
+                        height: "300px",
+                        objectFit: "cover",
+                        borderRadius: "5px",
+                      }}
+                    />
+                  ) : null}
                   {user?.role !== "teacher" ? (
-                    <div style={{ position: "fixed", zIndex: 9999, bottom: 16, right: 16, borderRadius: "5px", overflow: "hidden" }}>
-                      <div style={{ position: "relative", height: "200px", width: "200px", display: "grid", placeItems: "center" }}>
-                        <Webcam ref={myStreamRef} style={{ position: "absolute", top: 0, left: 0, objectFit: "cover" }} height={200} width={200} muted />
-                        <IconButton sx={{ position: "absolute", transition: "all 0.2s", backgroundColor: "rgba(0, 0, 0, 0.5) !important", "&:hover": { transform: "scale(1.1)" } }} onClick={captureImage}>
+                    <video
+                      autoPlay
+                      ref={peerStreamRef}
+                      style={{
+                        width: "100%",
+                        height: "300px",
+                        objectFit: "cover",
+                        borderRadius: "5px",
+                      }}
+                    />
+                  ) : null}
+                  {user?.role !== "teacher" ? (
+                    <div
+                      style={{
+                        position: "fixed",
+                        zIndex: 9999,
+                        bottom: 16,
+                        right: 16,
+                        borderRadius: "5px",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: "relative",
+                          height: "200px",
+                          width: "200px",
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <Webcam
+                          ref={myStreamRef}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            objectFit: "cover",
+                          }}
+                          height={200}
+                          width={200}
+                          muted
+                        />
+                        <IconButton
+                          sx={{
+                            position: "absolute",
+                            transition: "all 0.2s",
+                            backgroundColor: "rgba(0, 0, 0, 0.5) !important",
+                            "&:hover": { transform: "scale(1.1)" },
+                          }}
+                          onClick={captureImage}
+                        >
                           <Camera sx={{ color: "white" }} />
                         </IconButton>
                       </div>
@@ -553,27 +830,58 @@ const Course = () => {
             </Grid>
             <Grid item xs={12} sm={user?.role === "teacher" ? 6 : 12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" alignItems={"center"} justifyContent={"space-between"} spaacing={2} pb={2}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                <Stack
+                  direction="row"
+                  alignItems={"center"}
+                  justifyContent={"space-between"}
+                  spaacing={2}
+                  pb={2}
+                >
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Discussion
                   </Typography>
                   {user?.role === "teacher" ? (
                     isLoading ? (
                       <CircularProgress size={24} />
                     ) : (
-                      <Tooltip title={isMessagesFiltered ? "Show all" : "Show less"}>
-                        <IconButton onClick={() => setIsMessagesFiltered(!isMessagesFiltered)}>{isMessagesFiltered ? <FilterAlt /> : <FilterAltOff />}</IconButton>
+                      <Tooltip
+                        title={isMessagesFiltered ? "Show all" : "Show less"}
+                      >
+                        <IconButton
+                          onClick={() =>
+                            setIsMessagesFiltered(!isMessagesFiltered)
+                          }
+                        >
+                          {isMessagesFiltered ? (
+                            <FilterAlt />
+                          ) : (
+                            <FilterAltOff />
+                          )}
+                        </IconButton>
                       </Tooltip>
                     )
                   ) : null}
                 </Stack>
-                <ChatBox messages={filteredMessages} handleMessage={handleMessage} />
+                <ChatBox
+                  messages={filteredMessages}
+                  handleMessage={handleMessage}
+                />
               </Paper>
             </Grid>
             {user?.role === "teacher" ? (
               <Grid item xs={12} sm={6}>
                 <Paper sx={{ p: 2 }}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Live Doubts
                   </Typography>
                   <div style={{ width: "100%", height: "300px" }}>
@@ -588,7 +896,12 @@ const Course = () => {
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent={"space-between"}
+                  alignItems="center"
+                  spacing={1}
+                >
                   <Typography color="primary" variant="h6" gutterBottom>
                     Lectures
                   </Typography>
@@ -608,14 +921,22 @@ const Course = () => {
                               <VideoCall />
                             </Avatar>
                           </ListItemAvatar>
-                          <ListItemText primary={truncate(lecture.name, 40)} secondary={truncate(lecture.description, 80)} />
+                          <ListItemText
+                            primary={truncate(lecture.name, 40)}
+                            secondary={truncate(lecture.description, 80)}
+                          />
                         </ListItemButton>
                         <Divider />
                       </>
                     ))}
                   </List>
                 ) : (
-                  <Typography variant="body1" color="text.secondary" align="center" sx={{ py: "50px" }}>
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    align="center"
+                    sx={{ py: "50px" }}
+                  >
                     No lectures yet!
                   </Typography>
                 )}
@@ -623,19 +944,33 @@ const Course = () => {
             </Grid>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent={"space-between"}
+                  alignItems="center"
+                  spacing={1}
+                >
                   <Typography color="primary" variant="h6" gutterBottom>
                     Study Materials
                   </Typography>
                   {user?.role === "teacher" ? (
-                    <Button variant="contained" startIcon={<Add />} onClick={() => setMaterialsOpen(true)}>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => setMaterialsOpen(true)}
+                    >
                       New
                     </Button>
                   ) : null}
                 </Stack>
                 <Box sx={{ width: "100%", p: 1, pt: 2 }}>
                   {materials.map((material, index) => (
-                    <Badge onClick={() => window.open(UPLOAD_URL + material)} badgeContent={materials.length - index} color="secondary" sx={{ mr: 2, cursor: "pointer" }}>
+                    <Badge
+                      onClick={() => window.open(UPLOAD_URL + material)}
+                      badgeContent={materials.length - index}
+                      color="secondary"
+                      sx={{ mr: 2, cursor: "pointer" }}
+                    >
                       <FileCopy color="error" fontSize="large" />
                     </Badge>
                   ))}
@@ -645,7 +980,11 @@ const Course = () => {
           </Grid>
         </Grid>
       </Grid>
-      <Dialog open={materialsOpen} onClose={() => setMaterialsOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={materialsOpen}
+        onClose={() => setMaterialsOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             New Study Material
@@ -668,7 +1007,13 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <TextField required name="name" label="Name" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="name"
+                      label="Name"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
@@ -677,7 +1022,9 @@ const Course = () => {
                       label="Files"
                       fullWidth
                       variant="outlined"
-                      onChange={(e) => setMaterialsFiles(Array.from(e.target.files))}
+                      onChange={(e) =>
+                        setMaterialsFiles(Array.from(e.target.files))
+                      }
                       inputProps={{
                         multiple: true,
                       }}
@@ -686,7 +1033,14 @@ const Course = () => {
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton fullWidth sx={{ mt: 2 }} disabled={isLoading} loading={isLoading} type="submit" variant="contained">
+                <LoadingButton
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  disabled={isLoading}
+                  loading={isLoading}
+                  type="submit"
+                  variant="contained"
+                >
                   Upload
                 </LoadingButton>
               </Grid>
@@ -694,7 +1048,11 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={lectureOpen} onClose={() => setLectureOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={lectureOpen}
+        onClose={() => setLectureOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6">
             New Lecture
@@ -717,18 +1075,44 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <TextField required name="name" label="Name" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="name"
+                      label="Name"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField required name="youtubeId" label="YouTube Video ID" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="youtubeId"
+                      label="YouTube Video ID"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField required multiline rows={4} name="description" label="Description" fullWidth variant="outlined" />
+                    <TextField
+                      required
+                      multiline
+                      rows={4}
+                      name="description"
+                      label="Description"
+                      fullWidth
+                      variant="outlined"
+                    />
                   </Grid>
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton fullWidth disabled={isLoading} loading={isLoading} type="submit" variant="contained">
+                <LoadingButton
+                  fullWidth
+                  disabled={isLoading}
+                  loading={isLoading}
+                  type="submit"
+                  variant="contained"
+                >
                   Create
                 </LoadingButton>
               </Grid>
@@ -736,7 +1120,11 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={doubtsOpen} onClose={() => setDoubtsOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={doubtsOpen}
+        onClose={() => setDoubtsOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             How to use the captured image?
@@ -771,25 +1159,105 @@ const Course = () => {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
-                    <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" fullWidth variant="outlined" />
-                    <LoadingButton fullWidth disabled={isLoading} loading={isLoading} variant="contained" onClick={handleDoubtsCapture}>
+                    <TextField
+                      required
+                      value={doubts}
+                      onChange={(e) => setDoubts(e.target.value)}
+                      label="Doubts"
+                      fullWidth
+                      variant="outlined"
+                    />
+                    <LoadingButton
+                      fullWidth
+                      disabled={isLoading}
+                      loading={isLoading}
+                      variant="contained"
+                      onClick={handleDoubtsCapture}
+                    >
                       Doubts
                     </LoadingButton>
                   </Stack>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
-                    <TextField required value={classStrength} onChange={(e) => setClassStrength(e.target.value)} label="Class Strength" fullWidth variant="outlined" />
-                    <LoadingButton fullWidth disabled={isLoading || !classStrength} loading={isLoading} color="success" variant="contained" onClick={handleAttendanceCapture}>
+                    <TextField
+                      required
+                      value={classStrength}
+                      onChange={(e) => setClassStrength(e.target.value)}
+                      label="Class Strength"
+                      fullWidth
+                      variant="outlined"
+                    />
+                    <LoadingButton
+                      fullWidth
+                      disabled={isLoading || !classStrength}
+                      loading={isLoading}
+                      color="success"
+                      variant="contained"
+                      onClick={handleAttendanceCapture}
+                    >
                       Attendance
                     </LoadingButton>
                   </Stack>
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
-                    <Autocomplete fullWidth value={testQuestion} onChange={(e, value) => setTestQuestion(value)} options={testQuestions} getOptionLabel={(option) => option.question} renderInput={(params) => <TextField {...params} required label="Question" variant="outlined" />} />
-                    <LoadingButton fullWidth disabled={isLoading || !testQuestion} loading={isLoading} color="success" variant="contained" onClick={handleResponsesCapture}>
+                    <Autocomplete
+                      fullWidth
+                      value={testQuestion}
+                      onChange={(e, value) => setTestQuestion(value)}
+                      options={testQuestions}
+                      getOptionLabel={(option) => option.question}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          required
+                          label="Question"
+                          variant="outlined"
+                        />
+                      )}
+                    />
+                    <LoadingButton
+                      fullWidth
+                      disabled={isLoading || !testQuestion}
+                      loading={isLoading}
+                      color="success"
+                      variant="contained"
+                      onClick={handleResponsesCapture}
+                    >
                       Responses
+                    </LoadingButton>
+                  </Stack>
+                </Grid>
+                <Grid item xs={12} sm={12}>
+                  <Paper elevation={3} style={{ padding: 16 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Present Students' Roll Numbers
+                    </Typography>
+                    <Stack spacing={1}>
+                      {studentPresent.length > 0 && (
+                        <Box display="flex" flexWrap="wrap" gap={2}>
+                          {studentPresent.map((rollNumber) => (
+                            <Typography key={rollNumber} variant="body1">
+                              {rollNumber}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                </Grid>
+                <Grid item xs={12} sm={12}>
+                  <Stack spacing={2}>
+                    <LoadingButton
+                      fullWidth
+                      disabled={isLoading || studentPresent.length === 0}
+                      loading={isLoading}
+                      color="success"
+                      variant="contained"
+                      onClick={handleAttendance}
+                    >
+                      Update Attendence
                     </LoadingButton>
                   </Stack>
                 </Grid>
@@ -799,7 +1267,13 @@ const Course = () => {
           </Grid>
         </DialogContent>
       </Dialog>
-      <Drawer anchor={"bottom"} open={viewMode && user?.role !== "teacher"} onClose={() => setViewMode(false)} onOpen={() => setViewMode(true)} sx={{ zIndex: 99999 }}>
+      <Drawer
+        anchor={"bottom"}
+        open={viewMode && user?.role !== "teacher"}
+        onClose={() => setViewMode(false)}
+        onOpen={() => setViewMode(true)}
+        sx={{ zIndex: 99999 }}
+      >
         <Stack sx={{ width: "100%", height: "100vh" }}>
           <Box
             sx={{
@@ -825,14 +1299,36 @@ const Course = () => {
               />
             ) : null}
           </Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Box sx={{ position: "relative", flex: 1 }}>
-              <ChatBox sx={{ position: "absolute", top: "-328px", zIndex: 1 }} overlay messages={filteredMessages} handleMessage={handleMessage} />
+              <ChatBox
+                sx={{ position: "absolute", top: "-328px", zIndex: 1 }}
+                overlay
+                messages={filteredMessages}
+                handleMessage={handleMessage}
+              />
             </Box>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} p={1} sx={{ flex: { xs: 0, md: 1 } }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={1}
+              p={1}
+              sx={{ flex: { xs: 0, md: 1 } }}
+            >
               <Stack direction="row" spacing={1} flex={1}>
                 <Stack direction="row">
-                  <TextField required value={classStrength} onChange={(e) => setClassStrength(e.target.value)} label="Class Strength" variant="standard" />
+                  <TextField
+                    required
+                    value={classStrength}
+                    onChange={(e) => setClassStrength(e.target.value)}
+                    label="Class Strength"
+                    variant="standard"
+                  />
                   <Tooltip title="Attendance">
                     <IconButton disabled={isLoading || !classStrength}>
                       <Checklist onClick={handleAttendanceCapture} />
@@ -840,7 +1336,13 @@ const Course = () => {
                   </Tooltip>
                 </Stack>
                 <Stack direction="row">
-                  <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" variant="standard" />
+                  <TextField
+                    required
+                    value={doubts}
+                    onChange={(e) => setDoubts(e.target.value)}
+                    label="Doubts"
+                    variant="standard"
+                  />
                   <Tooltip title="Doubts">
                     <IconButton disables={isLoading}>
                       <PanTool onClick={handleDoubtsCapture} />
@@ -848,7 +1350,21 @@ const Course = () => {
                   </Tooltip>
                 </Stack>
                 <Stack direction="row" flex={1}>
-                  <Autocomplete fullWidth value={testQuestion} onChange={(e, value) => setTestQuestion(value)} options={testQuestions} getOptionLabel={(option) => option.question} renderInput={(params) => <TextField {...params} required label="Question" variant="standard" />} />
+                  <Autocomplete
+                    fullWidth
+                    value={testQuestion}
+                    onChange={(e, value) => setTestQuestion(value)}
+                    options={testQuestions}
+                    getOptionLabel={(option) => option.question}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        required
+                        label="Question"
+                        variant="standard"
+                      />
+                    )}
+                  />
                   <Tooltip title="Responses">
                     <IconButton disabled={isLoading || !testQuestion}>
                       <QuestionAnswer onClick={handleResponsesCapture} />
