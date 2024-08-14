@@ -6,6 +6,7 @@
     "node": "20.9.0"
   },
   "dependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.5",
@@ -38,9 +39,6 @@
     "socket.io-client": "^4.7.4",
     "validator": "^13.11.0",
     "web-vitals": "^2.1.4"
-  },
-  "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "^7.21.11"
   },
   "scripts": {
     "build": "react-scripts build",
