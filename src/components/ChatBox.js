@@ -3,7 +3,7 @@ import { useReactMediaRecorder } from "react-media-recorder";
 // apis
 import { speechToText } from "../apis/multimedia";
 // mui
-import { Box, Stack, TextField, IconButton, CircularProgress } from "@mui/material";
+import { Box, Stack, TextField, IconButton, CircularProgress, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import { Mic, MicOff, Send, AudioFile } from "@mui/icons-material";
 import ChatMessage from "./ChatMessage";
 // vars
@@ -12,12 +12,18 @@ const mimeType = "audio/webm;codecs=opus";
 const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
   const chatBoxRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { status, startRecording, stopRecording, mediaBlobUrl } = useReactMediaRecorder({ audio: true });
+  const [language, setLanguage] = useState("en");
+  const [error, setError] = useState(null); // To handle recording errors
+  const { status, startRecording, stopRecording, mediaBlobUrl, error: recorderError } = useReactMediaRecorder({ audio: true });
 
   useEffect(() => {
     if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
   }, [messages]);
-
+  useEffect(() => {
+    if (recorderError) {
+      setError("An error occurred while recording: " + recorderError);
+    }
+  }, [recorderError]);
   useEffect(() => {
     (async () => {
       if (mediaBlobUrl) {
@@ -28,7 +34,8 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
           const reader = new FileReader();
           reader.onload = async (e) => {
             const blobWithMimeType = new Blob([new Uint8Array(e.target.result)], { type: mimeType });
-            const text = await speechToText(blobWithMimeType);
+            const text = await speechToText(blobWithMimeType, language); // Pass the selected language
+            console.log(text);
             handleMessage(text);
             setIsLoading(false);
           };
@@ -43,12 +50,12 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
 
   const handleMic = () => {
     if ((status === "idle" || status === "stopped") && !isLoading) {
+      setError(null); // Clear any previous error
       startRecording();
-    } else {
+    } else if (status === "recording") {
       stopRecording();
     }
   };
-
   const handleAudioFile = () => {
     if (!isLoading) {
       const input = document.createElement("input");
@@ -56,13 +63,14 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
       input.accept = "audio/*";
       input.onchange = (e) => {
         const file = e.target.files[0];
+        
         if (file) {
           const reader = new FileReader();
           reader.onload = async (e) => {
             setIsLoading(true);
             try {
               const blobWithMimeType = new Blob([new Uint8Array(e.target.result)], { type: mimeType });
-              const text = await speechToText(blobWithMimeType);
+              const text = await speechToText(blobWithMimeType, language); // Pass the selected language
               handleMessage(text);
               setIsLoading(false);
             } catch (err) {
@@ -75,6 +83,10 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
       };
       input.click();
     }
+  };
+
+  const handleLanguageChange = (event) => {
+    setLanguage(event.target.value);
   };
 
   return (
@@ -100,6 +112,14 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
         <IconButton onClick={handleAudioFile}>
           <AudioFile color="success" />
         </IconButton>
+
+        <FormControl variant="standard" sx={{ minWidth: 80, mx: 1 }}>
+          <Select value={language} onChange={handleLanguageChange}>
+            <MenuItem value="en">English</MenuItem>
+            <MenuItem value="hi">Hindi</MenuItem>
+          </Select>
+        </FormControl>
+
         <IconButton onClick={handleMic}>{status === "idle" || status === "stopped" ? <MicOff color="primary" /> : <Mic color="error" />}</IconButton>
         <TextField fullWidth sx={{ mx: 1 }} variant="standard" label="Type your message." placeholder="Ex:- I have a doubt!" name="text" type="text" />
         {isLoading ? (

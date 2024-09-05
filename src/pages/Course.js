@@ -165,6 +165,7 @@ const Course = () => {
       if (isMessagesFiltered) {
         setIsLoading(true);
         const filteredMessages = await getFilteredMessages(messages);
+        console.log("filteredMessages",getFilteredMessages);
         setIsLoading(false);
         setFilteredMessages(
           filteredMessages.map((message) => ({

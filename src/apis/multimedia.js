@@ -1,14 +1,50 @@
-export const speechToText = async (blob) => {
+import { BASEML } from "../constants/endpoints";
+export const speechToText = async (blob, language) => {
   const formData = new FormData();
-  formData.append("file", blob);
-  const response = await fetch("https://btp-backend-n3xs.onrender.com/transcribe", {
-    method: "POST",
-    body: formData,
-  });
-  const data = await response.json();
-  console.log(data);
-  return data.transcript;
+  
+  formData.append("file", blob); // Append the audio blob
+  if (language) {
+    formData.append("language", language); // Append the selected language if provided
+  }
+
+  // Log the formData contents for debugging
+  console.log("FormData created:", formData);
+  
+  try {
+    // Log the start of the API request
+    console.log("Starting fetch request to transcribe audio...");
+
+    // Send the request to your speech-to-text API
+    const response = await fetch(`${BASEML}/transcribe`, {
+      method: "POST",
+      body: formData, // Send the form data containing the blob and language
+    });
+
+    // Log the response object for debugging
+    console.log("Fetch response:", response);
+
+    // Check if the response is okay (status 200-299)
+    if (!response.ok) {
+      throw new Error(`Failed to transcribe audio: ${response.statusText}`);
+    }
+
+    // Log the successful response before parsing it
+    console.log("Successfully received response, parsing JSON...");
+
+    const data = await response.json(); // Parse the JSON response
+
+    // Log the data for debugging
+    console.log("Parsed data:", data);
+
+    // Return the transcript from the data
+    return data.transcript;
+  } catch (error) {
+    // Log any errors encountered
+    console.error("Error in speechToText function:", error);
+    throw error; // Rethrow the error for handling in the calling function
+  }
 };
+
 
 export const getDoubtsFromImage = async (blob) => {
   //   const formData = new FormData();
@@ -29,7 +65,7 @@ export const getFilteredMessages = async (messages) => {
   const rawData = {
     texts: messages.map((message) => message.text),
   };
-  const response = await fetch("https://btp-backend-n3xs.onrender.com/process", {
+  const response = await fetch(`${BASEML}process`, {
     method: "POST",
     body: JSON.stringify(rawData),
     headers: {
