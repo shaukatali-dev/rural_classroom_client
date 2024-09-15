@@ -65,7 +65,7 @@ export const getFilteredMessages = async (messages) => {
   const rawData = {
     texts: messages.map((message) => message.text),
   };
-  const response = await fetch(`${BASEML}process`, {
+  const response = await fetch(`${BASEML}/process`, {
     method: "POST",
     body: JSON.stringify(rawData),
     headers: {
