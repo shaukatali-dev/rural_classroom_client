@@ -1,6 +1,6 @@
-export const BASE = "https://edtechplatform-e0fd5526c5df.herokuapp.com";
+export const BASE = "https://squid-app-5tnzr.ondigitalocean.app";
 // export const BASE = "http://localhost:8000";
-export const BASEML = "https://merry-blindly-stud.ngrok-free.app";
+export const BASEML = "http://localhost:8000";
 // export const BASE = "https://ruralclassroom.onrender.com";
 // file
 export const FILE_UPLOAD_ENDPOINT = BASE + "/file/upload";
