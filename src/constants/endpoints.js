@@ -1,7 +1,7 @@
 export const BASE = "https://squid-app-5tnzr.ondigitalocean.app";
 // export const BASE = "http://localhost:5000";
 // export const BASE = "http://localhost:8000";
-export const BASEML = "https://a9eb-223-187-245-115.ngrok-free.app";
+export const BASEML = "https://05f9-203-110-242-13.ngrok-free.app";
 // export const BASE = "https://ruralclassroom.onrender.com";
 // file
 export const FILE_UPLOAD_ENDPOINT = BASE + "/file/upload";
