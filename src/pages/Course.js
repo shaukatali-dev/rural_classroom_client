@@ -35,12 +35,7 @@ import { UPLOAD_URL } from "../constants/urls";
 //utils
 import { truncate } from "../utils";
 // apis
-import {
-  getDoubtsFromImage,
-  getAttendanceFromImage,
-  getResponsesFromImage,
-  getFilteredMessages,
-} from "../apis/multimedia";
+import { getDoubtsFromImage, getAttendanceFromImage, getResponsesFromImage, getFilteredMessages } from "../apis/multimedia";
 // mui
 import {
   Box,
@@ -87,10 +82,7 @@ const socket = io(BASE);
 
 function PaperComponent(props) {
   return (
-    <Draggable
-      handle="#draggable-dialog-title"
-      cancel={'[class*="MuiDialogContent-root"]'}
-    >
+    <Draggable handle="#draggable-dialog-title" cancel={'[class*="MuiDialogContent-root"]'}>
       <Paper {...props} />
     </Draggable>
   );
@@ -165,7 +157,7 @@ const Course = () => {
       if (isMessagesFiltered) {
         setIsLoading(true);
         const filteredMessages = await getFilteredMessages(messages);
-        console.log("filteredMessages",getFilteredMessages);
+        console.log("filteredMessages", getFilteredMessages);
         setIsLoading(false);
         setFilteredMessages(
           filteredMessages.map((message) => ({
@@ -344,18 +336,11 @@ const Course = () => {
 
   useEffect(() => {
     socket.on("doubts", ({ doubts, time }) => {
-      setChartData((prev) => [
-        ...prev,
-        { doubts, time: Number(time).toFixed(1) },
-        { doubts: 0, time: (Number(time) + 0.1).toFixed(1) },
-      ]);
+      setChartData((prev) => [...prev, { doubts, time: Number(time).toFixed(1) }, { doubts: 0, time: (Number(time) + 0.1).toFixed(1) }]);
     });
     socket.on("message", ({ from, fromName, text, date }) => {
       setMessages((messages) => [...messages, { from, fromName, text, date }]);
-      setFilteredMessages((messages) => [
-        ...messages,
-        { from, fromName, text, date },
-      ]);
+      setFilteredMessages((messages) => [...messages, { from, fromName, text, date }]);
     });
     // join room
     socket.emit("join", { room: courseId });
@@ -369,10 +354,10 @@ const Course = () => {
     if (attendance?.length) handleAttendance();
   }, [attendance]);
 
-  useEffect(() => {
-    console.log(responses);
-    // if (responses?.length) handleResponses();
-  }, [responses]);
+  // useEffect(() => {
+  //   console.log(responses);
+  //   if (responses?.length) handleResponses();
+  // }, [responses]);
 
   const captureImage = () => {
     // const capturedImage = myStreamRef.current.getScreenshot();
@@ -481,16 +466,7 @@ const Course = () => {
       fileNames = [];
     // change file name for each file before uploading
     materialFiles.forEach((file, index) => {
-      const fileName =
-        user.role +
-        "." +
-        user.email +
-        ".material." +
-        data.name +
-        "." +
-        index +
-        "." +
-        file.name.split(".").at(-1);
+      const fileName = user.role + "." + user.email + ".material." + data.name + "." + index + "." + file.name.split(".").at(-1);
       fileNames.push(fileName);
       formData.append("files", file, fileName);
     });
@@ -548,11 +524,7 @@ const Course = () => {
       // store doubts
       try {
         axios
-          .post(
-            DOUBT_NEW_ENDPOINT,
-            { course: courseId, lecture: lecture?._id, doubts, time },
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
+          .post(DOUBT_NEW_ENDPOINT, { course: courseId, lecture: lecture?._id, doubts, time }, { headers: { Authorization: `Bearer ${token}` } })
           .then((res) => {
             console.log("Doubts created");
           })
@@ -600,8 +572,16 @@ const Course = () => {
   const handleResponses = () => {
     if (responses.length && test && testQuestion) {
       try {
+        const processedResponses = responses
+          .map((response) => ({
+            test: test?._id,
+            question: testQuestion._id,
+            student: user?._id + "_" + response[0],
+            response: testQuestion.options.find((q) => q.key === response[1])?.value,
+          }))
+          .filter((response) => response.response && response.student);
         axios
-          .post(RESPONSE_NEWS_ENDPOINT, responses, {
+          .post(RESPONSE_NEWS_ENDPOINT, processedResponses, {
             headers: { Authorization: `Bearer ${token}` },
           })
           .then((res) => {
@@ -649,9 +629,7 @@ const Course = () => {
     for (let i = 0; i < classStrength; i++) {
       allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
     }
-    const rollNumbersToSend = allStudentRoll.filter(
-      (rollNumber) => !studentPresent.includes(rollNumber)
-    );
+    const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !studentPresent.includes(rollNumber));
 
     // Convert the roll numbers array to a JSON string and append to FormData
     formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
@@ -667,9 +645,7 @@ const Course = () => {
     console.log(attendance);
     setStudentPresent((prevStudentPresent) => {
       const newRollNumbers = new Set(prevStudentPresent);
-      attendance.extracted_roll_numbers.forEach((rollNumber) =>
-        newRollNumbers.add(rollNumber)
-      );
+      attendance.extracted_roll_numbers.forEach((rollNumber) => newRollNumbers.add(rollNumber));
       return Array.from(newRollNumbers).sort((a, b) => a - b);
     });
     setIsLoading(false);
@@ -680,22 +656,46 @@ const Course = () => {
       setIsLoading(true);
       const capturedImage = myStreamRef.current.getScreenshot();
       const imageBlob = await fetch(capturedImage).then((r) => r.blob());
-      const responses = await getResponsesFromImage(imageBlob);
-      const processedResponses = responses
-        .map((response) => ({
-          test: test?._id,
-          question: testQuestion._id,
-          student: user?._id + "_" + response.roll,
-          response: testQuestion.options.find(
-            (q) => q.key === response.response
-          )?.value,
-        }))
-        .filter((response) => response.response && response.student);
-      setResponses(processedResponses);
+      const formData = new FormData();
+      formData.append("file", imageBlob, "attendance_image.png"); // 'file' should match the parameter in your backend function
+      let allStudentRoll = [];
+      for (let i = 0; i < classStrength; i++) {
+        allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
+      }
+      const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !responses.some((res) => res[0] == rollNumber));
+
+      console.log("rollNumbersToSend", rollNumbersToSend);
+      // Convert the roll numbers array to a JSON string and append to FormData
+      formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
+      console.log("rollNumbersTosend", rollNumbersToSend);
+      // Send the image and roll numbers to the server
+      const response = await fetch(`${BASEML}/mcq-analysis`, {
+        method: "POST",
+        body: formData, // Send the FormData object as the request body
+      });
+      const data = await response.json();
+      console.log("data", data);
+      const responseAnalysis = data.extracted_mcq_with_roll;
+      // const processedResponses = responseAnalysis
+      //   .map((response) => ({
+      //     test: test?._id,
+      //     question: testQuestion._id,
+      //     student: user?._id + "_" + response[0],
+      //     response: testQuestion.options.find((q) => q.key === response[1])?.value,
+      //   }))
+      //   .filter((response) => response.response && response.student);
+      // if it already exists in response then filtered out on the basis of first element of each element of the array
+      const filteredResponseAnalysis = responseAnalysis.filter((res) => !responses.some((prev) => prev[0] === res[0]));
+
+      // Then update the state if necessary
+      setResponses([...responses, ...filteredResponseAnalysis]);
+
       setIsLoading(false);
     }
   };
-
+  useEffect(() => {
+    console.log("responses", responses);
+  }, [responses]);
   return (
     <Container maxWidth="100%">
       <Helmet>
@@ -709,12 +709,7 @@ const Course = () => {
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
                 <Stack direction="row" alignItems="center" spacing={1} pb={2}>
-                  <Typography
-                    color="primary"
-                    variant="h6"
-                    flex={1}
-                    gutterBottom
-                  >
+                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
                     Live Class
                   </Typography>
                   {user?.role === "teacher" ? (
@@ -735,11 +730,7 @@ const Course = () => {
                     </IconButton>
                   ) : null}
                 </Stack>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  sx={{ position: "relative" }}
-                >
+                <Stack direction="row" alignItems="center" sx={{ position: "relative" }}>
                   {lecture ? (
                     <YouTube
                       ref={youtubeRef}
@@ -831,58 +822,29 @@ const Course = () => {
             </Grid>
             <Grid item xs={12} sm={user?.role === "teacher" ? 6 : 12}>
               <Paper sx={{ p: 2 }}>
-                <Stack
-                  direction="row"
-                  alignItems={"center"}
-                  justifyContent={"space-between"}
-                  spaacing={2}
-                  pb={2}
-                >
-                  <Typography
-                    color="primary"
-                    variant="h6"
-                    flex={1}
-                    gutterBottom
-                  >
+                <Stack direction="row" alignItems={"center"} justifyContent={"space-between"} spaacing={2} pb={2}>
+                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
                     Discussion
                   </Typography>
                   {user?.role === "teacher" ? (
                     isLoading ? (
                       <CircularProgress size={24} />
                     ) : (
-                      <Tooltip
-                        title={isMessagesFiltered ? "Show all" : "Show less"}
-                      >
-                        <IconButton
-                          onClick={() =>
-                            setIsMessagesFiltered(!isMessagesFiltered)
-                          }
-                        >
-                          {isMessagesFiltered ? (
-                            <FilterAlt />
-                          ) : (
-                            <FilterAltOff />
-                          )}
+                      <Tooltip title={isMessagesFiltered ? "Show all" : "Show less"}>
+                        <IconButton onClick={() => setIsMessagesFiltered(!isMessagesFiltered)}>
+                          {isMessagesFiltered ? <FilterAlt /> : <FilterAltOff />}
                         </IconButton>
                       </Tooltip>
                     )
                   ) : null}
                 </Stack>
-                <ChatBox
-                  messages={filteredMessages}
-                  handleMessage={handleMessage}
-                />
+                <ChatBox messages={filteredMessages} handleMessage={handleMessage} />
               </Paper>
             </Grid>
             {user?.role === "teacher" ? (
               <Grid item xs={12} sm={6}>
                 <Paper sx={{ p: 2 }}>
-                  <Typography
-                    color="primary"
-                    variant="h6"
-                    flex={1}
-                    gutterBottom
-                  >
+                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
                     Live Doubts
                   </Typography>
                   <div style={{ width: "100%", height: "300px" }}>
@@ -897,12 +859,7 @@ const Course = () => {
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack
-                  direction="row"
-                  justifyContent={"space-between"}
-                  alignItems="center"
-                  spacing={1}
-                >
+                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
                   <Typography color="primary" variant="h6" gutterBottom>
                     Lectures
                   </Typography>
@@ -922,22 +879,14 @@ const Course = () => {
                               <VideoCall />
                             </Avatar>
                           </ListItemAvatar>
-                          <ListItemText
-                            primary={truncate(lecture.name, 40)}
-                            secondary={truncate(lecture.description, 80)}
-                          />
+                          <ListItemText primary={truncate(lecture.name, 40)} secondary={truncate(lecture.description, 80)} />
                         </ListItemButton>
                         <Divider />
                       </>
                     ))}
                   </List>
                 ) : (
-                  <Typography
-                    variant="body1"
-                    color="text.secondary"
-                    align="center"
-                    sx={{ py: "50px" }}
-                  >
+                  <Typography variant="body1" color="text.secondary" align="center" sx={{ py: "50px" }}>
                     No lectures yet!
                   </Typography>
                 )}
@@ -945,21 +894,12 @@ const Course = () => {
             </Grid>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack
-                  direction="row"
-                  justifyContent={"space-between"}
-                  alignItems="center"
-                  spacing={1}
-                >
+                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
                   <Typography color="primary" variant="h6" gutterBottom>
                     Study Materials
                   </Typography>
                   {user?.role === "teacher" ? (
-                    <Button
-                      variant="contained"
-                      startIcon={<Add />}
-                      onClick={() => setMaterialsOpen(true)}
-                    >
+                    <Button variant="contained" startIcon={<Add />} onClick={() => setMaterialsOpen(true)}>
                       New
                     </Button>
                   ) : null}
@@ -981,11 +921,7 @@ const Course = () => {
           </Grid>
         </Grid>
       </Grid>
-      <Dialog
-        open={materialsOpen}
-        onClose={() => setMaterialsOpen(false)}
-        PaperComponent={PaperComponent}
-      >
+      <Dialog open={materialsOpen} onClose={() => setMaterialsOpen(false)} PaperComponent={PaperComponent}>
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             New Study Material
@@ -1008,13 +944,7 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <TextField
-                      required
-                      name="name"
-                      label="Name"
-                      fullWidth
-                      variant="standard"
-                    />
+                    <TextField required name="name" label="Name" fullWidth variant="standard" />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
@@ -1023,9 +953,7 @@ const Course = () => {
                       label="Files"
                       fullWidth
                       variant="outlined"
-                      onChange={(e) =>
-                        setMaterialsFiles(Array.from(e.target.files))
-                      }
+                      onChange={(e) => setMaterialsFiles(Array.from(e.target.files))}
                       inputProps={{
                         multiple: true,
                       }}
@@ -1034,14 +962,7 @@ const Course = () => {
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton
-                  fullWidth
-                  sx={{ mt: 2 }}
-                  disabled={isLoading}
-                  loading={isLoading}
-                  type="submit"
-                  variant="contained"
-                >
+                <LoadingButton fullWidth sx={{ mt: 2 }} disabled={isLoading} loading={isLoading} type="submit" variant="contained">
                   Upload
                 </LoadingButton>
               </Grid>
@@ -1049,11 +970,7 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={lectureOpen}
-        onClose={() => setLectureOpen(false)}
-        PaperComponent={PaperComponent}
-      >
+      <Dialog open={lectureOpen} onClose={() => setLectureOpen(false)} PaperComponent={PaperComponent}>
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6">
             New Lecture
@@ -1076,44 +993,18 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      name="name"
-                      label="Name"
-                      fullWidth
-                      variant="standard"
-                    />
+                    <TextField required name="name" label="Name" fullWidth variant="standard" />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      name="youtubeId"
-                      label="YouTube Video ID"
-                      fullWidth
-                      variant="standard"
-                    />
+                    <TextField required name="youtubeId" label="YouTube Video ID" fullWidth variant="standard" />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField
-                      required
-                      multiline
-                      rows={4}
-                      name="description"
-                      label="Description"
-                      fullWidth
-                      variant="outlined"
-                    />
+                    <TextField required multiline rows={4} name="description" label="Description" fullWidth variant="outlined" />
                   </Grid>
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton
-                  fullWidth
-                  disabled={isLoading}
-                  loading={isLoading}
-                  type="submit"
-                  variant="contained"
-                >
+                <LoadingButton fullWidth disabled={isLoading} loading={isLoading} type="submit" variant="contained">
                   Create
                 </LoadingButton>
               </Grid>
@@ -1121,11 +1012,7 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog
-        open={doubtsOpen}
-        onClose={() => setDoubtsOpen(false)}
-        PaperComponent={PaperComponent}
-      >
+      <Dialog open={doubtsOpen} onClose={() => setDoubtsOpen(false)} PaperComponent={PaperComponent}>
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             How to use the captured image?
@@ -1160,21 +1047,8 @@ const Course = () => {
                 </Grid>
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
-                    <TextField
-                      required
-                      value={doubts}
-                      onChange={(e) => setDoubts(e.target.value)}
-                      label="Doubts"
-                      fullWidth
-                      variant="outlined"
-                    />
-                    <LoadingButton
-                      fullWidth
-                      disabled={isLoading}
-                      loading={isLoading}
-                      variant="contained"
-                      onClick={handleDoubtsCapture}
-                    >
+                    <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" fullWidth variant="outlined" />
+                    <LoadingButton fullWidth disabled={isLoading} loading={isLoading} variant="contained" onClick={handleDoubtsCapture}>
                       Doubts
                     </LoadingButton>
                   </Stack>
@@ -1209,18 +1083,11 @@ const Course = () => {
                       onChange={(e, value) => setTestQuestion(value)}
                       options={testQuestions}
                       getOptionLabel={(option) => option.question}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          required
-                          label="Question"
-                          variant="outlined"
-                        />
-                      )}
+                      renderInput={(params) => <TextField {...params} required label="Question" variant="outlined" />}
                     />
                     <LoadingButton
                       fullWidth
-                      disabled={isLoading || !testQuestion}
+                      disabled={isLoading || !testQuestion || !classStrength}
                       loading={isLoading}
                       color="success"
                       variant="contained"
@@ -1230,13 +1097,13 @@ const Course = () => {
                     </LoadingButton>
                   </Stack>
                 </Grid>
-                <Grid item xs={12} sm={12}>
-                  <Paper elevation={3} style={{ padding: 16 }}>
-                    <Typography variant="h6" gutterBottom>
-                      Present Students' Roll Numbers
-                    </Typography>
-                    <Stack spacing={1}>
-                      {studentPresent.length > 0 && (
+                {studentPresent.length > 0 && (
+                  <Grid item xs={12} sm={12}>
+                    <Paper elevation={3} style={{ padding: 16 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Present Students' Roll Numbers
+                      </Typography>
+                      <Stack spacing={1}>
                         <Box display="flex" flexWrap="wrap" gap={2}>
                           {studentPresent.map((rollNumber) => (
                             <Typography key={rollNumber} variant="body1">
@@ -1244,24 +1111,61 @@ const Course = () => {
                             </Typography>
                           ))}
                         </Box>
-                      )}
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                )}
+
+                {responses.length > 0 && (
+                  <Grid item xs={12} sm={12}>
+                    <Paper elevation={3} style={{ padding: 16 }}>
+                      <Typography variant="h6" gutterBottom>
+                        Students Answers
+                      </Typography>
+                      <Stack spacing={1}>
+                        <Box display="flex" flexWrap="wrap" gap={2}>
+                          {responses.map((res) => (
+                            <Typography key={res[0]} variant="body1">
+                              {res[0]} - {res[1]}
+                            </Typography>
+                          ))}
+                        </Box>
+                      </Stack>
+                    </Paper>
+                  </Grid>
+                )}
+                {studentPresent.length !== 0 && (
+                  <Grid item xs={12} sm={12}>
+                    <Stack spacing={2}>
+                      <LoadingButton
+                        fullWidth
+                        disabled={isLoading}
+                        loading={isLoading}
+                        color="success"
+                        variant="contained"
+                        onClick={handleAttendance}
+                      >
+                        Update Attendence
+                      </LoadingButton>
                     </Stack>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={12}>
-                  <Stack spacing={2}>
-                    <LoadingButton
-                      fullWidth
-                      disabled={isLoading || studentPresent.length === 0}
-                      loading={isLoading}
-                      color="success"
-                      variant="contained"
-                      onClick={handleAttendance}
-                    >
-                      Update Attendence
-                    </LoadingButton>
-                  </Stack>
-                </Grid>
+                  </Grid>
+                )}
+                {responses.length !== 0 && (
+                  <Grid item xs={12} sm={12}>
+                    <Stack spacing={2}>
+                      <LoadingButton
+                        fullWidth
+                        disabled={isLoading}
+                        loading={isLoading}
+                        color="success"
+                        variant="contained"
+                        onClick={handleResponses}
+                      >
+                        Update Responses
+                      </LoadingButton>
+                    </Stack>
+                  </Grid>
+                )}
               </Grid>
             </Grid>
             <Grid item xs={12} sm={6}></Grid>
@@ -1300,27 +1204,11 @@ const Course = () => {
               />
             ) : null}
           </Box>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Box sx={{ position: "relative", flex: 1 }}>
-              <ChatBox
-                sx={{ position: "absolute", top: "-328px", zIndex: 1 }}
-                overlay
-                messages={filteredMessages}
-                handleMessage={handleMessage}
-              />
+              <ChatBox sx={{ position: "absolute", top: "-328px", zIndex: 1 }} overlay messages={filteredMessages} handleMessage={handleMessage} />
             </Box>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={1}
-              p={1}
-              sx={{ flex: { xs: 0, md: 1 } }}
-            >
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} p={1} sx={{ flex: { xs: 0, md: 1 } }}>
               <Stack direction="row" spacing={1} flex={1}>
                 <Stack direction="row">
                   <TextField
@@ -1337,13 +1225,7 @@ const Course = () => {
                   </Tooltip>
                 </Stack>
                 <Stack direction="row">
-                  <TextField
-                    required
-                    value={doubts}
-                    onChange={(e) => setDoubts(e.target.value)}
-                    label="Doubts"
-                    variant="standard"
-                  />
+                  <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" variant="standard" />
                   <Tooltip title="Doubts">
                     <IconButton disables={isLoading}>
                       <PanTool onClick={handleDoubtsCapture} />
@@ -1357,14 +1239,7 @@ const Course = () => {
                     onChange={(e, value) => setTestQuestion(value)}
                     options={testQuestions}
                     getOptionLabel={(option) => option.question}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        required
-                        label="Question"
-                        variant="standard"
-                      />
-                    )}
+                    renderInput={(params) => <TextField {...params} required label="Question" variant="standard" />}
                   />
                   <Tooltip title="Responses">
                     <IconButton disabled={isLoading || !testQuestion}>
