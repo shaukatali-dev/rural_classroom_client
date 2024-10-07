@@ -7,43 +7,34 @@ export const speechToText = async (blob, language) => {
     formData.append("language", language); // Append the selected language if provided
   }
 
-  // Log the formData contents for debugging
-  console.log("FormData created:", formData);
-  
   try {
-    // Log the start of the API request
     console.log("Starting fetch request to transcribe audio...");
 
-    // Send the request to your speech-to-text API
     const response = await fetch(`${BASEML}/transcribe`, {
       method: "POST",
       body: formData, // Send the form data containing the blob and language
     });
 
-    // Log the response object for debugging
-    console.log("Fetch response:", response);
-
     // Check if the response is okay (status 200-299)
     if (!response.ok) {
-      throw new Error(`Failed to transcribe audio: ${response.statusText}`);
+      throw new Error(`Server responded with an error: ${response.statusText}`);
     }
-
-    // Log the successful response before parsing it
-    console.log("Successfully received response, parsing JSON...");
 
     const data = await response.json(); // Parse the JSON response
 
     // Log the data for debugging
-    console.log("Parsed data:", data);
+    console.log("Transcription response:", data);
 
-    // Return the transcript from the data
     return data.transcript;
   } catch (error) {
-    // Log any errors encountered
-    console.error("Error in speechToText function:", error);
-    throw error; // Rethrow the error for handling in the calling function
+    // Gracefully handle fetch errors without causing a runtime error
+    console.error("Error in speechToText:", error.message || "Failed to fetch");
+
+    // Optionally, return a default message or empty string to handle gracefully
+    return "error";
   }
 };
+
 
 
 export const getDoubtsFromImage = async (blob) => {

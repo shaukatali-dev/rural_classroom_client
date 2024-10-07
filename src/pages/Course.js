@@ -118,6 +118,19 @@ const Course = () => {
   const [materialFiles, setMaterialsFiles] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [viewMode, setViewMode] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setUploadedImage(file);
+      // Create a preview URL for the image
+      const previewURL = URL.createObjectURL(file);
+      setImagePreview(previewURL);
+    }
+  };
+
 
   // useEffect(() => {
   //   const interval = setInterval(() => {
@@ -613,86 +626,142 @@ const Course = () => {
   };
 
   const handleAttendanceCapture = async () => {
-    setIsLoading(true);
-
-    // Capture the image as a screenshot
-    const capturedImage = myStreamRef.current.getScreenshot();
-
-    // Convert the image to a blob
-    const imageBlob = await fetch(capturedImage).then((r) => r.blob());
-
-    // Create a FormData object to send the image as a file and roll numbers
-    const formData = new FormData();
-    formData.append("file", imageBlob, "attendance_image.png"); // 'file' should match the parameter in your backend function
-
-    let allStudentRoll = [];
-    for (let i = 0; i < classStrength; i++) {
-      allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
-    }
-    const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !studentPresent.includes(rollNumber));
-
-    // Convert the roll numbers array to a JSON string and append to FormData
-    formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
-
-    // Send the image and roll numbers to the server
-    const response = await fetch(`${BASEML}/mcq-analysis`, {
-      method: "POST",
-      body: formData, // Send the FormData object as the request body
-    });
-
-    // Optionally handle the server's response
-    const attendance = await response.json();
-    console.log(attendance);
-    setStudentPresent((prevStudentPresent) => {
-      const newRollNumbers = new Set(prevStudentPresent);
-      attendance.extracted_roll_numbers.forEach((rollNumber) => newRollNumbers.add(rollNumber));
-      return Array.from(newRollNumbers).sort((a, b) => a - b);
-    });
-    setIsLoading(false);
-  };
-
-  const handleResponsesCapture = async () => {
-    if (test && testQuestion) {
+    try {
       setIsLoading(true);
-      const capturedImage = myStreamRef.current.getScreenshot();
-      const imageBlob = await fetch(capturedImage).then((r) => r.blob());
+      let imageBlob;
+
+      // Handle image capture or uploaded image
+      if (uploadedImage) {
+        imageBlob = uploadedImage;
+      } else {
+        try {
+          const capturedImage = myStreamRef.current.getScreenshot();
+          imageBlob = await fetch(capturedImage).then((r) => r.blob());
+        } catch (error) {
+          console.error("Error capturing image:", error);
+          setIsLoading(false);
+          return; // Exit if image capture fails
+        }
+      }
+
+      // Create FormData for image and roll numbers
       const formData = new FormData();
-      formData.append("file", imageBlob, "attendance_image.png"); // 'file' should match the parameter in your backend function
+      formData.append("file", imageBlob, "attendance_image.png");
+
       let allStudentRoll = [];
       for (let i = 0; i < classStrength; i++) {
         allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
       }
-      const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !responses.some((res) => res[0] == rollNumber));
-
-      console.log("rollNumbersToSend", rollNumbersToSend);
-      // Convert the roll numbers array to a JSON string and append to FormData
+      const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !studentPresent.includes(rollNumber));
       formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
-      console.log("rollNumbersTosend", rollNumbersToSend);
-      // Send the image and roll numbers to the server
+
+      // Send data to the server
       const response = await fetch(`${BASEML}/mcq-analysis`, {
         method: "POST",
-        body: formData, // Send the FormData object as the request body
+        body: formData,
       });
-      const data = await response.json();
-      console.log("data", data);
-      const responseAnalysis = data.extracted_mcq_with_roll;
-      // const processedResponses = responseAnalysis
-      //   .map((response) => ({
-      //     test: test?._id,
-      //     question: testQuestion._id,
-      //     student: user?._id + "_" + response[0],
-      //     response: testQuestion.options.find((q) => q.key === response[1])?.value,
-      //   }))
-      //   .filter((response) => response.response && response.student);
-      // if it already exists in response then filtered out on the basis of first element of each element of the array
-      const filteredResponseAnalysis = responseAnalysis.filter((res) => !responses.some((prev) => prev[0] === res[0]));
 
-      // Then update the state if necessary
-      setResponses([...responses, ...filteredResponseAnalysis]);
+      // Check if the response is okay
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
 
-      setIsLoading(false);
+      // Parse server response
+      const attendance = await response.json();
+
+      // Update the studentPresent state with the new roll numbers
+      setStudentPresent((prevStudentPresent) => {
+        const newRollNumbers = new Set(prevStudentPresent);
+        attendance.extracted_roll_numbers.forEach((rollNumber) => newRollNumbers.add(rollNumber));
+        return Array.from(newRollNumbers).sort((a, b) => a - b);
+      });
+
+      // Reset state after successful processing
+      setUploadedImage(null);
+    } catch (error) {
+      console.error("Error during attendance capture:", error);
+      // Optionally show a user-friendly error message here
+      alert("An error occurred during attendance capture. Please try again.");
+    } finally {
+      setIsLoading(false); // Always stop loading indicator, even if an error occurs
     }
   };
+
+
+  const handleResponsesCapture = async () => {
+    try {
+      if (test && testQuestion) {
+        setIsLoading(true);
+        let imageBlob;
+
+        // Check if there's an uploaded image or capture a new one
+        if (uploadedImage) {
+          imageBlob = uploadedImage;
+        } else {
+          try {
+            const capturedImage = myStreamRef.current.getScreenshot();
+            imageBlob = await fetch(capturedImage).then((r) => r.blob());
+          } catch (error) {
+            console.error("Error capturing image:", error);
+            setIsLoading(false);
+            return; // Exit if image capture fails
+          }
+        }
+
+        // Create FormData for the image and roll numbers
+        const formData = new FormData();
+        formData.append("file", imageBlob, "attendance_image.png");
+
+        let allStudentRoll = [];
+        for (let i = 0; i < classStrength; i++) {
+          allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
+        }
+
+        // Filter out roll numbers that are already in the responses array
+        const rollNumbersToSend = allStudentRoll.filter((rollNumber) =>
+          !responses.some((res) => res[0] === rollNumber)
+        );
+
+        // Log for debugging
+        console.log("rollNumbersToSend:", rollNumbersToSend);
+
+        // Append roll numbers to FormData
+        formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
+
+        // Send the image and roll numbers to the server
+        const response = await fetch(`${BASEML}/mcq-analysis`, {
+          method: "POST",
+          body: formData,
+        });
+
+        // Check if the response is okay
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.statusText}`);
+        }
+
+        // Parse the server response
+        const data = await response.json();
+        const responseAnalysis = data.extracted_mcq_with_roll;
+
+        // Filter out responses that are already in the state
+        const filteredResponseAnalysis = responseAnalysis.filter(
+          (res) => !responses.some((prev) => prev[0] === res[0])
+        );
+
+        // Update the responses state
+        setResponses([...responses, ...filteredResponseAnalysis]);
+
+        // Reset the state after processing
+        setUploadedImage(null);
+      }
+    } catch (error) {
+      console.error("Error during response capture:", error);
+      alert("An error occurred while capturing responses. Please try again.");
+    } finally {
+      setIsLoading(false); // Stop loading in both success and failure cases
+    }
+  };
+
   useEffect(() => {
     console.log("responses", responses);
   }, [responses]);
@@ -1045,6 +1114,7 @@ const Course = () => {
                     }}
                   /> */}
                 </Grid>
+
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
                     <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" fullWidth variant="outlined" />
@@ -1095,6 +1165,29 @@ const Course = () => {
                     >
                       Responses
                     </LoadingButton>
+                  </Stack>
+                </Grid>
+                <Grid item xs={12} sm={12}>
+                  <Stack spacing={1}>
+                    <input
+                      accept="image/*"
+                      type="file"
+                      onChange={handleImageUpload}
+                      style={{ display: "none" }}
+                      id="upload-button-file"
+                    />
+                    <label htmlFor="upload-button-file">
+                      <Button variant="contained" color="primary" component="span">
+                        Upload captured Image
+                      </Button>
+                    </label>
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Image Preview"
+                        style={{ width: "100%", maxHeight: "200px", objectFit: "contain" }}
+                      />
+                    )}
                   </Stack>
                 </Grid>
                 {studentPresent.length > 0 && (

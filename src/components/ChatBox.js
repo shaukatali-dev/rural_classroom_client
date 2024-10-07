@@ -61,29 +61,47 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
       const input = document.createElement("input");
       input.type = "file";
       input.accept = "audio/*";
+  
       input.onchange = (e) => {
         const file = e.target.files[0];
-        
+  
         if (file) {
           const reader = new FileReader();
+  
           reader.onload = async (e) => {
             setIsLoading(true);
             try {
-              const blobWithMimeType = new Blob([new Uint8Array(e.target.result)], { type: mimeType });
-              const text = await speechToText(blobWithMimeType, language); // Pass the selected language
-              handleMessage(text);
-              setIsLoading(false);
+              // Create a Blob with the correct MIME type
+              const blobWithMimeType = new Blob([new Uint8Array(e.target.result)], { type: file.type });
+  
+              // Call speechToText with blob and selected language
+              const text = await speechToText(blobWithMimeType, language); 
+
+              if (text.message=='error'){
+                setIsLoading(false)
+              }else{
+                handleMessage(text.message)
+              }
+             
             } catch (err) {
-              setIsLoading(false);
-              console.log(err);
+              console.log("Unexpected error while handling audio file:", err);
+            } finally {
+              setIsLoading(false); // Ensure loading is reset
             }
           };
+  
+          // Read the file as an ArrayBuffer
           reader.readAsArrayBuffer(file);
         }
       };
-      input.click();
+  
+      input.click(); // Trigger file input dialog
     }
   };
+  
+
+
+
 
   const handleLanguageChange = (event) => {
     setLanguage(event.target.value);
