@@ -10,7 +10,7 @@ const Charts = ({ charts }) => {
   const [currentBreakpoint, setCurrentBreakpoint] = useState("lg");
   const [mounted, setMounted] = useState(false);
   const [toolbox, setToolbox] = useState({ lg: [] });
-
+  // console.log("charts",charts)
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -101,7 +101,7 @@ const Charts = ({ charts }) => {
         ? charts.map((chart, i) => {
             return (
               <div key={i}>
-                <chart.component data={chart.data} x={chart.x} title={chart.title} delay={chart.delay} height={chart.height} />
+                <chart.component data={chart.data} x={chart.x} y={chart.y} title={chart.title} delay={chart.delay} height={chart.height} />
               </div>
             );
           })

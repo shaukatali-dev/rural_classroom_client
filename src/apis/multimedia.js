@@ -78,37 +78,7 @@ export const getResponsesFromImage = async (blob) => {
   console.log("data",data);
   const responseAnalysis = data.extracted_mcq_with_roll
   return responseAnalysis;
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  return [
-    {
-      roll: 1,
-      response: "B",
-    },
-    {
-      roll: 2,
-      response: "B",
-    },
-    {
-      roll: 3,
-      response: "C",
-    },
-    {
-      roll: 4,
-      response: "C",
-    },
-    {
-      roll: 5,
-      response: "D",
-    },
-    {
-      roll: 6,
-      response: "D",
-    },
-    {
-      roll: 7,
-      response: "A",
-    },
-  ];
+  
 };
 
 export const getAttendanceFromImage = async (blob) => {

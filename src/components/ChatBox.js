@@ -77,10 +77,10 @@ const ChatBox = ({ sx, overlay, messages, handleMessage }) => {
               // Call speechToText with blob and selected language
               const text = await speechToText(blobWithMimeType, language); 
 
-              if (text.message=='error'){
+              if (text=='error'){
                 setIsLoading(false)
               }else{
-                handleMessage(text.message)
+                handleMessage(text)
               }
              
             } catch (err) {
