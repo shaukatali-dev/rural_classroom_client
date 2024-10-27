@@ -124,7 +124,6 @@ const Course = () => {
   const [capturedImage, setCapturedImage] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [materialFiles, setMaterialsFiles] = useState([]);
-  const [attendance, setAttendance] = useState([]);
   const [viewMode, setViewMode] = useState(false);
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -377,10 +376,6 @@ const Course = () => {
     };
   }, [user]);
 
-  useEffect(() => {
-    if (attendance?.length) handleAttendance();
-  }, [attendance]);
-
   // useEffect(() => {
   //   console.log(responses);
   //   if (responses?.length) handleResponses();
@@ -579,6 +574,9 @@ const Course = () => {
 
   const handleAttendance = async () => {
     if (lecture?._id && studentPresent?.length) {
+      const attendence = studentPresent.map((student) => {
+        return user._id + "_" + student;
+      });
       try {
         axios
           .post(
@@ -586,8 +584,8 @@ const Course = () => {
             {
               coordinator: user?._id,
               lecture: lecture._id,
-              studentPresent,
-              classStrength,
+              attendence,
+              percentage: (studentPresent.length / classStrength) * 100,
             },
             { headers: { Authorization: `Bearer ${token}` } }
           )

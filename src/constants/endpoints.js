@@ -1,5 +1,6 @@
-export const BASE = "https://squid-app-5tnzr.ondigitalocean.app";
-// export const BASE = "http://localhost:5000";
+// export const BASE = "https://squid-app-5tnzr.ondigitalocean.app";
+export const BASE = "https://rural-classroom-server.onrender.com";
+// export const BASE = "https://dfd4-106-196-7-104.ngrok-free.app";
 export const BASEML = "https://merry-blindly-stud.ngrok-free.app";
 // export const BASEML = "https://05f9-203-110-242-13.ngrok-free.app";
 // export const BASEML = "http://localhost:8000";
@@ -92,3 +93,4 @@ export const DOUBT_DELETE_ENDPOINT = BASE + "/doubt/delete";
 // analytics
 export const ANALYTICS_GET_ENDPOINT = BASE + "/analytics/get";
 export const ANALYTICS_MAPPINGS_ENDPOINT = BASE + "/analytics/mappings";
+export const ANALYTICS_COURSES_ENDPOINT = BASE + "/analytics/courses";

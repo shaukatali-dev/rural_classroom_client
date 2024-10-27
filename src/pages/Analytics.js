@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import axios from "axios";
 import { Helmet } from "react-helmet";
 // components
 import Charts from "../components/Charts";
 import LineChart from "../components/charts/LineChart";
-import AreaChart from "../components/charts/AreaChart";
-import BarChart from "../components/charts/BarChart";
 // constants
 import { COMPANY } from "../constants/vars";
 import {
   ANALYTICS_GET_ENDPOINT,
   ANALYTICS_MAPPINGS_ENDPOINT,
+  ANALYTICS_COURSES_ENDPOINT,
 } from "../constants/endpoints";
 // contexts
 import AppContext from "../contexts/AppContext";
@@ -41,97 +40,79 @@ const Analytics = () => {
     id: "0",
   });
   const [test, setTest] = useState({ label: "No tests found", id: "0" });
-  const [coordinatorMapping, setCoordinatorMapping] = useState({});
-  const [lectureMapping, setLectureMapping] = useState({});
-  const [courseLectureMapping, setCourseLectureMapping] = useState({});
-  const [courseTestMapping, setCourseTestMapping] = useState({});
+  const [courseList, setCourseList] = useState([]);
+  const [lectureList, setLectureList] = useState([]);
+  const [testList, setTestList] = useState([]);
+  const [coordinatorList, setCoordinatorList] = useState([]);
+  const [coordinatorNames, setCoordinatorNames] = useState([]);
+  const [formattedAttendanceArray, setFormattedAttendanceArray] = useState([]);
   // analytics data
   const [lectureWiseAttendance, setLectureWiseAttendance] = useState([]);
 
-  const [attendanceTable, setAttendanceTable] = useState([]);
-  const [lectureHeaders, setLectureHeaders] = useState([]);
-
-  useEffect(() => {
-    if (course) {
-      if (courseLectureMapping[course.id]?.data?.length)
-        setLecture({
-          label: courseLectureMapping[course.id].data[0]?.name,
-          id: courseLectureMapping[course.id].data[0]?._id,
-        });
-      else
-        setLecture({
-          label: "No lectures found",
-          id: "0",
-        });
-      if (courseTestMapping[course.id]?.data?.length)
-        setTest({
-          label: courseTestMapping[course.id].data[0]?.name,
-          id: courseTestMapping[course.id].data[0]?._id,
-        });
-      else
-        setTest({
-          label: "No tests found",
-          id: "0",
-        });
-    }
-  }, [course]);
-
   useEffect(() => {
     setIsLoading(true);
-    try {
-      axios
-        .get(ANALYTICS_MAPPINGS_ENDPOINT, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          if (Object.keys(res.data.data.courseLectureMapping).length) {
-            const lectureMapping = res.data.data.lectureMapping;
-            const coordinatorMapping = res.data.data.coordinatorMapping;
-            const courseLectureMapping = res.data.data.courseLectureMapping;
-            const courseTestMapping = res.data.data.courseTestMapping;
-            // set mappings
-            setLectureMapping(lectureMapping);
-            setCoordinatorMapping(coordinatorMapping);
-            setCourseLectureMapping(courseLectureMapping);
-            setCourseTestMapping(courseTestMapping);
-            // defaults
-            setCoordinator({
-              label: coordinatorMapping[Object.keys(coordinatorMapping)[0]],
-              id: Object.keys(coordinatorMapping)[0],
-            });
-            setCourse({
-              label:
-                courseLectureMapping[Object.keys(courseLectureMapping)[0]]
-                  .course.name,
-              id: courseLectureMapping[Object.keys(courseLectureMapping)[0]]
-                .course._id,
-            });
-            setLecture({
-              label:
-                courseLectureMapping[Object.keys(courseLectureMapping)[0]]
-                  .data[0].name,
-              id: courseLectureMapping[Object.keys(courseLectureMapping)[0]]
-                .data[0]._id,
-            });
-            setTest({
-              label:
-                courseTestMapping[Object.keys(courseTestMapping)[0]].data[0]
-                  .name,
-              id: courseTestMapping[Object.keys(courseTestMapping)[0]].data[0]
-                ._id,
-            });
-            setIsLoading(false);
-          }
-        })
-        .catch((err) => {
-          console.log(err);
-          setIsLoading(false);
+    axios
+      .get(ANALYTICS_COURSES_ENDPOINT, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        setCourseList(res.data.data);
+        setCourse({
+          label: res.data.data[0].name,
+          id: res.data.data[0].id,
         });
-    } catch (err) {
-      console.log(err);
-      setIsLoading(false);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsLoading(false);
+      });
+  }, [token]);
+
+  const fetchMapping = useCallback(() => {
+    if (!course || course.id === "0") {
+      setLecture({ label: "No lectures found", id: "0" });
+      setTest({ label: "No tests found", id: "0" });
+      return;
     }
-  }, []);
+
+    setIsLoading(true);
+    axios
+      .post(
+        ANALYTICS_MAPPINGS_ENDPOINT,
+        { course: course.id },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      )
+      .then((res) => {
+        console.log("res.data.data", res.data);
+        setLectureList(res.data.lecture);
+        setTestList(res.data.test);
+        setCoordinatorList(res.data.coordinator);
+        setLecture({
+          label: res.data.lecture[0].name,
+          id: res.data.lecture[0].id,
+        });
+        setTest({
+          label: res.data.test[0].name,
+          id: res.data.test[0].id,
+        });
+        setCoordinator({
+          label: res.data.coordinator[0].name,
+          id: res.data.coordinator[0].id,
+        });
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        console.log(err);
+        setIsLoading(false);
+      });
+  }, [course, token]);
+
+  useEffect(() => {
+    fetchMapping();
+  }, [fetchMapping]);
 
   useEffect(() => {
     if (!Object.keys(lectureWiseAttendance)?.length) {
@@ -139,85 +120,12 @@ const Analytics = () => {
         prevCharts.filter((chart) => chart.title !== "Lecture-wise Attendance")
       );
     } else {
-      const data = Object.keys(lectureWiseAttendance)
-        .map((lecture) => {
-          // Initialize attendance data with the lecture name mapped from lectureMapping
-          const attendanceData = { lecture: lectureMapping[lecture] };
-
-          // Check if attendance exists and is non-empty for the current lecture
-          const lectureAttendance = lectureWiseAttendance[lecture];
-
-          if (lectureAttendance && lectureAttendance.length > 0) {
-            // If attendance data exists, populate the attendanceData object
-            lectureAttendance.forEach((attendance) => {
-              attendanceData[coordinatorMapping[attendance.coordinator]] =
-                attendance.percentage;
-            });
-            return attendanceData; // Return the attendance data for this lecture
-          }
-
-          // If no attendance data, return null (we'll filter out nulls later)
-          return null;
-        })
-        .filter((entry) => entry !== null); // Filter out null entries where no attendance data exists
-
-      const lectureWiseAttend = Object.keys(lectureWiseAttendance).reduce(
-        (acc, lecture) => {
-          // Get attendance for the current lecture
-          const lectureAttendance = lectureWiseAttendance[lecture];
-
-          // Check if there is attendance data for the lecture
-          if (lectureAttendance && lectureAttendance.length > 0) {
-            // Use a Set to ensure uniqueness
-            const mergedAttendance = new Set();
-
-            // Flatten deeply nested arrays and add to the Set for uniqueness
-            lectureAttendance.forEach((at) => {
-              at.attendance.forEach((num) => {
-                mergedAttendance.add(num); // Use .add() to ensure uniqueness
-              });
-            });
-
-            // Convert the Set back to an array and assign to the lecture key in the result object
-            acc[lectureMapping[lecture]] = Array.from(mergedAttendance);
-          } else {
-            // Assign an empty array for lectures with no attendance
-            acc[lectureMapping[lecture]] = [];
-          }
-
-          return acc;
-        },
-        {}
-      );
       console.log("lectureWiseAttendance", lectureWiseAttendance);
-      console.log("lectureWiseAttend", lectureWiseAttend);
-
-      const { attendanceTable, lectureNames } =
-        prepareAttendanceTableData(lectureWiseAttend);
-
-      setAttendanceTable(attendanceTable);
-      setLectureHeaders(lectureNames);
-      // Extract all coordinator names dynamically that are present across all entries
-      const coordinatorNames = Object.keys(
-        data.reduce((commonKeys, currentLecture) => {
-          // Get keys from current lecture excluding 'lecture'
-          const currentKeys = Object.keys(currentLecture).filter(
-            (key) => key !== "lecture"
-          );
-
-          // If it's the first lecture, initialize commonKeys
-          if (!commonKeys) return currentKeys;
-
-          // Find common keys between current lecture and existing commonKeys
-          return commonKeys.filter((key) => currentKeys.includes(key));
-        }, null)
-      );
-
       const chartData = {
         x: "lecture",
         y: coordinatorNames,
         title: "Lecture-wise Attendance",
-        data: data,
+        data: lectureWiseAttendance,
         delay: 1000,
         component: LineChart,
         height: "90%",
@@ -234,7 +142,7 @@ const Analytics = () => {
         return [...prevCharts, chartData];
       });
     }
-  }, [lectureWiseAttendance, lectureMapping, coordinatorMapping]);
+  }, [lectureWiseAttendance, coordinatorNames]);
 
   const handleAnalytics = async () => {
     setIsLoading(true);
@@ -249,57 +157,18 @@ const Analytics = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      setLectureWiseAttendance(res.data.data.lectureWiseAttendance);
+      console.log("res.data", res.data);
+      setLectureWiseAttendance(res.data.data);
+      setCoordinatorNames(res.data.coordinatorNames);
+      setFormattedAttendanceArray(res.data.formattedAttendanceArray);
     } catch (err) {
       console.log(err);
+      setLectureWiseAttendance([]);
+      setCoordinatorNames([]);
+      setFormattedAttendanceArray([]);
     } finally {
       setIsLoading(false);
     }
-  };
-  const getAllUniqueStudentIds = (lectureWiseAttend) => {
-    const studentSet = new Set();
-
-    // Loop through each lecture and add student IDs to the set
-    Object.values(lectureWiseAttend).forEach((studentArray) => {
-      studentArray.forEach((studentId) => studentSet.add(Number(studentId))); // Convert IDs to numbers
-    });
-
-    // Convert the set to an array
-    const studentArray = Array.from(studentSet);
-
-    // Get the highest number in the array
-    const highestNumber = Math.max(...studentArray);
-
-    // Return an array from 1 to the highest number, converting each number to a string
-    return Array.from({ length: highestNumber }, (_, index) =>
-      String(index + 1)
-    );
-  };
-  const prepareAttendanceTableData = (lectureWiseAttend) => {
-    // Get all unique student IDs
-    const allStudentIds = getAllUniqueStudentIds(lectureWiseAttend);
-
-    // Get all lecture names
-    const lectureNames = Object.keys(lectureWiseAttend);
-
-    // Create a data structure for the table
-    const attendanceTable = allStudentIds.map((studentId) => {
-      const attendanceRecord = { studentId };
-
-      lectureNames.forEach((lecture) => {
-        // Check if the student is present in this lecture
-        attendanceRecord[lecture] = lectureWiseAttend[lecture].includes(
-          studentId
-        )
-          ? "P"
-          : "A";
-      });
-
-      return attendanceRecord;
-    });
-
-    return { attendanceTable, lectureNames };
   };
 
   return (
@@ -316,30 +185,12 @@ const Analytics = () => {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Autocomplete
-                  value={coordinator}
-                  onChange={(e, value) => setCoordinator(value)}
-                  options={Object.keys(coordinatorMapping).map(
-                    (coordinatorId) => ({
-                      id: coordinatorId,
-                      label: coordinatorMapping[coordinatorId],
-                    })
-                  )}
-                  sx={{ width: "100%" }}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Coordinator" />
-                  )}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Autocomplete
                   value={course}
                   onChange={(e, value) => setCourse(value)}
-                  options={Object.keys(courseLectureMapping).map(
-                    (courseId) => ({
-                      id: courseLectureMapping[courseId].course._id,
-                      label: courseLectureMapping[courseId].course.name,
-                    })
-                  )}
+                  options={courseList.map((course) => ({
+                    label: course.name,
+                    id: course.id,
+                  }))}
                   sx={{ width: "100%" }}
                   renderInput={(params) => (
                     <TextField {...params} label="Course" />
@@ -350,16 +201,10 @@ const Analytics = () => {
                 <Autocomplete
                   value={lecture}
                   onChange={(e, value) => setLecture(value)}
-                  options={
-                    courseLectureMapping[course?.id]?.data?.length
-                      ? courseLectureMapping[course?.id]?.data.map(
-                          (lecture) => ({
-                            label: lecture.name,
-                            id: lecture._id,
-                          })
-                        )
-                      : [{ label: "No lectures found", id: "0" }]
-                  }
+                  options={lectureList.map((lecture) => ({
+                    label: lecture.name,
+                    id: lecture.id,
+                  }))}
                   renderInput={(params) => (
                     <TextField {...params} label="Lecture" />
                   )}
@@ -367,14 +212,27 @@ const Analytics = () => {
               </Grid>
               <Grid item xs={12}>
                 <Autocomplete
+                  value={coordinator}
+                  onChange={(e, value) => setCoordinator(value)}
+                  options={coordinatorList.map((coordinator) => ({
+                    label: coordinator.name,
+                    id: coordinator.id,
+                  }))}
+                  sx={{ width: "100%" }}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Coordinator" />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Autocomplete
                   value={test}
                   onChange={(e, value) => setTest(value)}
-                  options={
-                    courseTestMapping[course?.id]?.data.map((test) => ({
-                      label: test.name,
-                      id: test._id,
-                    })) || []
-                  }
+                  options={testList.map((test) => ({
+                    label: test.name,
+                    id: test.id,
+                  }))}
                   sx={{ width: "100%" }}
                   renderInput={(params) => (
                     <TextField {...params} label="Test" />
@@ -409,10 +267,19 @@ const Analytics = () => {
             <Typography color="primary" variant="h6" flex={1} gutterBottom>
               Lecture-wise Attendance (Present/Absent)
             </Typography>
-            <LectureAttendanceTable
-              attendanceTable={attendanceTable}
-              lectureHeaders={lectureHeaders}
-            />
+            {formattedAttendanceArray.length > 0 &&
+              formattedAttendanceArray.map((attendance) => (
+                <div key={attendance.coordinator}>
+                  <Typography key={attendance.coordinator}>
+                    {attendance.coordinator}
+                  </Typography>
+                  <LectureAttendanceTable
+                    // attendanceTable={attendanceTable}
+                    // lectureHeaders={lectureHeaders}
+                    formattedAttendanceArray={attendance.attendances}
+                  />
+                </div>
+              ))}
           </Paper>
         </Grid>
       </Grid>
