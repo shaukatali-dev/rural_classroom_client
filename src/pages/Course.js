@@ -35,7 +35,12 @@ import { UPLOAD_URL } from "../constants/urls";
 //utils
 import { truncate } from "../utils";
 // apis
-import { getDoubtsFromImage, getAttendanceFromImage, getResponsesFromImage, getFilteredMessages } from "../apis/multimedia";
+import {
+  getDoubtsFromImage,
+  getAttendanceFromImage,
+  getResponsesFromImage,
+  getFilteredMessages,
+} from "../apis/multimedia";
 // mui
 import {
   Box,
@@ -82,7 +87,10 @@ const socket = io(BASE);
 
 function PaperComponent(props) {
   return (
-    <Draggable handle="#draggable-dialog-title" cancel={'[class*="MuiDialogContent-root"]'}>
+    <Draggable
+      handle="#draggable-dialog-title"
+      cancel={'[class*="MuiDialogContent-root"]'}
+    >
       <Paper {...props} />
     </Draggable>
   );
@@ -130,7 +138,6 @@ const Course = () => {
       setImagePreview(previewURL);
     }
   };
-
 
   // useEffect(() => {
   //   const interval = setInterval(() => {
@@ -349,11 +356,18 @@ const Course = () => {
 
   useEffect(() => {
     socket.on("doubts", ({ doubts, time }) => {
-      setChartData((prev) => [...prev, { doubts, time: Number(time).toFixed(1) }, { doubts: 0, time: (Number(time) + 0.1).toFixed(1) }]);
+      setChartData((prev) => [
+        ...prev,
+        { doubts, time: Number(time).toFixed(1) },
+        { doubts: 0, time: (Number(time) + 0.1).toFixed(1) },
+      ]);
     });
     socket.on("message", ({ from, fromName, text, date }) => {
       setMessages((messages) => [...messages, { from, fromName, text, date }]);
-      setFilteredMessages((messages) => [...messages, { from, fromName, text, date }]);
+      setFilteredMessages((messages) => [
+        ...messages,
+        { from, fromName, text, date },
+      ]);
     });
     // join room
     socket.emit("join", { room: courseId });
@@ -479,7 +493,16 @@ const Course = () => {
       fileNames = [];
     // change file name for each file before uploading
     materialFiles.forEach((file, index) => {
-      const fileName = user.role + "." + user.email + ".material." + data.name + "." + index + "." + file.name.split(".").at(-1);
+      const fileName =
+        user.role +
+        "." +
+        user.email +
+        ".material." +
+        data.name +
+        "." +
+        index +
+        "." +
+        file.name.split(".").at(-1);
       fileNames.push(fileName);
       formData.append("files", file, fileName);
     });
@@ -537,7 +560,11 @@ const Course = () => {
       // store doubts
       try {
         axios
-          .post(DOUBT_NEW_ENDPOINT, { course: courseId, lecture: lecture?._id, doubts, time }, { headers: { Authorization: `Bearer ${token}` } })
+          .post(
+            DOUBT_NEW_ENDPOINT,
+            { course: courseId, lecture: lecture?._id, doubts, time },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
           .then((res) => {
             console.log("Doubts created");
           })
@@ -560,7 +587,7 @@ const Course = () => {
               coordinator: user?._id,
               lecture: lecture._id,
               studentPresent,
-              percentage: (studentPresent.length / classStrength) * 100,
+              classStrength,
             },
             { headers: { Authorization: `Bearer ${token}` } }
           )
@@ -590,7 +617,8 @@ const Course = () => {
             test: test?._id,
             question: testQuestion._id,
             student: user?._id + "_" + response[0],
-            response: testQuestion.options.find((q) => q.key === response[1])?.value,
+            response: testQuestion.options.find((q) => q.key === response[1])
+              ?.value,
           }))
           .filter((response) => response.response && response.student);
         axios
@@ -652,7 +680,9 @@ const Course = () => {
       for (let i = 0; i < classStrength; i++) {
         allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
       }
-      const rollNumbersToSend = allStudentRoll.filter((rollNumber) => !studentPresent.includes(rollNumber));
+      const rollNumbersToSend = allStudentRoll.filter(
+        (rollNumber) => !studentPresent.includes(rollNumber)
+      );
       formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
 
       // Send data to the server
@@ -672,7 +702,9 @@ const Course = () => {
       // Update the studentPresent state with the new roll numbers
       setStudentPresent((prevStudentPresent) => {
         const newRollNumbers = new Set(prevStudentPresent);
-        attendance.extracted_roll_numbers.forEach((rollNumber) => newRollNumbers.add(rollNumber));
+        attendance.extracted_roll_numbers.forEach((rollNumber) =>
+          newRollNumbers.add(rollNumber)
+        );
         return Array.from(newRollNumbers).sort((a, b) => a - b);
       });
 
@@ -686,7 +718,6 @@ const Course = () => {
       setIsLoading(false); // Always stop loading indicator, even if an error occurs
     }
   };
-
 
   const handleResponsesCapture = async () => {
     try {
@@ -718,8 +749,8 @@ const Course = () => {
         }
 
         // Filter out roll numbers that are already in the responses array
-        const rollNumbersToSend = allStudentRoll.filter((rollNumber) =>
-          !responses.some((res) => res[0] === rollNumber)
+        const rollNumbersToSend = allStudentRoll.filter(
+          (rollNumber) => !responses.some((res) => res[0] === rollNumber)
         );
 
         // Log for debugging
@@ -778,7 +809,12 @@ const Course = () => {
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
                 <Stack direction="row" alignItems="center" spacing={1} pb={2}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Live Class
                   </Typography>
                   {user?.role === "teacher" ? (
@@ -799,7 +835,11 @@ const Course = () => {
                     </IconButton>
                   ) : null}
                 </Stack>
-                <Stack direction="row" alignItems="center" sx={{ position: "relative" }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  sx={{ position: "relative" }}
+                >
                   {lecture ? (
                     <YouTube
                       ref={youtubeRef}
@@ -891,29 +931,58 @@ const Course = () => {
             </Grid>
             <Grid item xs={12} sm={user?.role === "teacher" ? 6 : 12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" alignItems={"center"} justifyContent={"space-between"} spaacing={2} pb={2}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                <Stack
+                  direction="row"
+                  alignItems={"center"}
+                  justifyContent={"space-between"}
+                  spaacing={2}
+                  pb={2}
+                >
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Discussion
                   </Typography>
                   {user?.role === "teacher" ? (
                     isLoading ? (
                       <CircularProgress size={24} />
                     ) : (
-                      <Tooltip title={isMessagesFiltered ? "Show all" : "Show less"}>
-                        <IconButton onClick={() => setIsMessagesFiltered(!isMessagesFiltered)}>
-                          {isMessagesFiltered ? <FilterAlt /> : <FilterAltOff />}
+                      <Tooltip
+                        title={isMessagesFiltered ? "Show all" : "Show less"}
+                      >
+                        <IconButton
+                          onClick={() =>
+                            setIsMessagesFiltered(!isMessagesFiltered)
+                          }
+                        >
+                          {isMessagesFiltered ? (
+                            <FilterAlt />
+                          ) : (
+                            <FilterAltOff />
+                          )}
                         </IconButton>
                       </Tooltip>
                     )
                   ) : null}
                 </Stack>
-                <ChatBox messages={filteredMessages} handleMessage={handleMessage} />
+                <ChatBox
+                  messages={filteredMessages}
+                  handleMessage={handleMessage}
+                />
               </Paper>
             </Grid>
             {user?.role === "teacher" ? (
               <Grid item xs={12} sm={6}>
                 <Paper sx={{ p: 2 }}>
-                  <Typography color="primary" variant="h6" flex={1} gutterBottom>
+                  <Typography
+                    color="primary"
+                    variant="h6"
+                    flex={1}
+                    gutterBottom
+                  >
                     Live Doubts
                   </Typography>
                   <div style={{ width: "100%", height: "300px" }}>
@@ -928,7 +997,12 @@ const Course = () => {
           <Grid container spacing={2}>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent={"space-between"}
+                  alignItems="center"
+                  spacing={1}
+                >
                   <Typography color="primary" variant="h6" gutterBottom>
                     Lectures
                   </Typography>
@@ -948,14 +1022,22 @@ const Course = () => {
                               <VideoCall />
                             </Avatar>
                           </ListItemAvatar>
-                          <ListItemText primary={truncate(lecture.name, 40)} secondary={truncate(lecture.description, 80)} />
+                          <ListItemText
+                            primary={truncate(lecture.name, 40)}
+                            secondary={truncate(lecture.description, 80)}
+                          />
                         </ListItemButton>
                         <Divider />
                       </>
                     ))}
                   </List>
                 ) : (
-                  <Typography variant="body1" color="text.secondary" align="center" sx={{ py: "50px" }}>
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    align="center"
+                    sx={{ py: "50px" }}
+                  >
                     No lectures yet!
                   </Typography>
                 )}
@@ -963,12 +1045,21 @@ const Course = () => {
             </Grid>
             <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
-                <Stack direction="row" justifyContent={"space-between"} alignItems="center" spacing={1}>
+                <Stack
+                  direction="row"
+                  justifyContent={"space-between"}
+                  alignItems="center"
+                  spacing={1}
+                >
                   <Typography color="primary" variant="h6" gutterBottom>
                     Study Materials
                   </Typography>
                   {user?.role === "teacher" ? (
-                    <Button variant="contained" startIcon={<Add />} onClick={() => setMaterialsOpen(true)}>
+                    <Button
+                      variant="contained"
+                      startIcon={<Add />}
+                      onClick={() => setMaterialsOpen(true)}
+                    >
                       New
                     </Button>
                   ) : null}
@@ -990,7 +1081,11 @@ const Course = () => {
           </Grid>
         </Grid>
       </Grid>
-      <Dialog open={materialsOpen} onClose={() => setMaterialsOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={materialsOpen}
+        onClose={() => setMaterialsOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             New Study Material
@@ -1013,7 +1108,13 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <TextField required name="name" label="Name" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="name"
+                      label="Name"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
@@ -1022,7 +1123,9 @@ const Course = () => {
                       label="Files"
                       fullWidth
                       variant="outlined"
-                      onChange={(e) => setMaterialsFiles(Array.from(e.target.files))}
+                      onChange={(e) =>
+                        setMaterialsFiles(Array.from(e.target.files))
+                      }
                       inputProps={{
                         multiple: true,
                       }}
@@ -1031,7 +1134,14 @@ const Course = () => {
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton fullWidth sx={{ mt: 2 }} disabled={isLoading} loading={isLoading} type="submit" variant="contained">
+                <LoadingButton
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  disabled={isLoading}
+                  loading={isLoading}
+                  type="submit"
+                  variant="contained"
+                >
                   Upload
                 </LoadingButton>
               </Grid>
@@ -1039,7 +1149,11 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={lectureOpen} onClose={() => setLectureOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={lectureOpen}
+        onClose={() => setLectureOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6">
             New Lecture
@@ -1062,18 +1176,44 @@ const Course = () => {
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
-                    <TextField required name="name" label="Name" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="name"
+                      label="Name"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField required name="youtubeId" label="YouTube Video ID" fullWidth variant="standard" />
+                    <TextField
+                      required
+                      name="youtubeId"
+                      label="YouTube Video ID"
+                      fullWidth
+                      variant="standard"
+                    />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField required multiline rows={4} name="description" label="Description" fullWidth variant="outlined" />
+                    <TextField
+                      required
+                      multiline
+                      rows={4}
+                      name="description"
+                      label="Description"
+                      fullWidth
+                      variant="outlined"
+                    />
                   </Grid>
                 </Grid>
               </Grid>
               <Grid item xs={12}>
-                <LoadingButton fullWidth disabled={isLoading} loading={isLoading} type="submit" variant="contained">
+                <LoadingButton
+                  fullWidth
+                  disabled={isLoading}
+                  loading={isLoading}
+                  type="submit"
+                  variant="contained"
+                >
                   Create
                 </LoadingButton>
               </Grid>
@@ -1081,7 +1221,11 @@ const Course = () => {
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={doubtsOpen} onClose={() => setDoubtsOpen(false)} PaperComponent={PaperComponent}>
+      <Dialog
+        open={doubtsOpen}
+        onClose={() => setDoubtsOpen(false)}
+        PaperComponent={PaperComponent}
+      >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
           <Typography color="primary" variant="h6" gutterBottom>
             How to use the captured image?
@@ -1117,8 +1261,21 @@ const Course = () => {
 
                 <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
-                    <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" fullWidth variant="outlined" />
-                    <LoadingButton fullWidth disabled={isLoading} loading={isLoading} variant="contained" onClick={handleDoubtsCapture}>
+                    <TextField
+                      required
+                      value={doubts}
+                      onChange={(e) => setDoubts(e.target.value)}
+                      label="Doubts"
+                      fullWidth
+                      variant="outlined"
+                    />
+                    <LoadingButton
+                      fullWidth
+                      disabled={isLoading}
+                      loading={isLoading}
+                      variant="contained"
+                      onClick={handleDoubtsCapture}
+                    >
                       Doubts
                     </LoadingButton>
                   </Stack>
@@ -1153,7 +1310,14 @@ const Course = () => {
                       onChange={(e, value) => setTestQuestion(value)}
                       options={testQuestions}
                       getOptionLabel={(option) => option.question}
-                      renderInput={(params) => <TextField {...params} required label="Question" variant="outlined" />}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          required
+                          label="Question"
+                          variant="outlined"
+                        />
+                      )}
                     />
                     <LoadingButton
                       fullWidth
@@ -1177,7 +1341,11 @@ const Course = () => {
                       id="upload-button-file"
                     />
                     <label htmlFor="upload-button-file">
-                      <Button variant="contained" color="primary" component="span">
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        component="span"
+                      >
                         Upload captured Image
                       </Button>
                     </label>
@@ -1185,7 +1353,11 @@ const Course = () => {
                       <img
                         src={imagePreview}
                         alt="Image Preview"
-                        style={{ width: "100%", maxHeight: "200px", objectFit: "contain" }}
+                        style={{
+                          width: "100%",
+                          maxHeight: "200px",
+                          objectFit: "contain",
+                        }}
                       />
                     )}
                   </Stack>
@@ -1297,11 +1469,27 @@ const Course = () => {
               />
             ) : null}
           </Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
             <Box sx={{ position: "relative", flex: 1 }}>
-              <ChatBox sx={{ position: "absolute", top: "-328px", zIndex: 1 }} overlay messages={filteredMessages} handleMessage={handleMessage} />
+              <ChatBox
+                sx={{ position: "absolute", top: "-328px", zIndex: 1 }}
+                overlay
+                messages={filteredMessages}
+                handleMessage={handleMessage}
+              />
             </Box>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} p={1} sx={{ flex: { xs: 0, md: 1 } }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              spacing={1}
+              p={1}
+              sx={{ flex: { xs: 0, md: 1 } }}
+            >
               <Stack direction="row" spacing={1} flex={1}>
                 <Stack direction="row">
                   <TextField
@@ -1318,7 +1506,13 @@ const Course = () => {
                   </Tooltip>
                 </Stack>
                 <Stack direction="row">
-                  <TextField required value={doubts} onChange={(e) => setDoubts(e.target.value)} label="Doubts" variant="standard" />
+                  <TextField
+                    required
+                    value={doubts}
+                    onChange={(e) => setDoubts(e.target.value)}
+                    label="Doubts"
+                    variant="standard"
+                  />
                   <Tooltip title="Doubts">
                     <IconButton disables={isLoading}>
                       <PanTool onClick={handleDoubtsCapture} />
@@ -1332,7 +1526,14 @@ const Course = () => {
                     onChange={(e, value) => setTestQuestion(value)}
                     options={testQuestions}
                     getOptionLabel={(option) => option.question}
-                    renderInput={(params) => <TextField {...params} required label="Question" variant="standard" />}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        required
+                        label="Question"
+                        variant="standard"
+                      />
+                    )}
                   />
                   <Tooltip title="Responses">
                     <IconButton disabled={isLoading || !testQuestion}>

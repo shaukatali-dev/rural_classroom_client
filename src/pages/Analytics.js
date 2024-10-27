@@ -144,7 +144,6 @@ const Analytics = () => {
           // Initialize attendance data with the lecture name mapped from lectureMapping
           const attendanceData = { lecture: lectureMapping[lecture] };
 
-
           // Check if attendance exists and is non-empty for the current lecture
           const lectureAttendance = lectureWiseAttendance[lecture];
 
@@ -190,8 +189,8 @@ const Analytics = () => {
         },
         {}
       );
-
-   
+      console.log("lectureWiseAttendance", lectureWiseAttendance);
+      console.log("lectureWiseAttend", lectureWiseAttend);
 
       const { attendanceTable, lectureNames } =
         prepareAttendanceTableData(lectureWiseAttend);
@@ -250,7 +249,7 @@ const Analytics = () => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       setLectureWiseAttendance(res.data.data.lectureWiseAttendance);
     } catch (err) {
       console.log(err);
@@ -260,20 +259,22 @@ const Analytics = () => {
   };
   const getAllUniqueStudentIds = (lectureWiseAttend) => {
     const studentSet = new Set();
-  
+
     // Loop through each lecture and add student IDs to the set
     Object.values(lectureWiseAttend).forEach((studentArray) => {
       studentArray.forEach((studentId) => studentSet.add(Number(studentId))); // Convert IDs to numbers
     });
-  
+
     // Convert the set to an array
     const studentArray = Array.from(studentSet);
-  
+
     // Get the highest number in the array
     const highestNumber = Math.max(...studentArray);
-  
+
     // Return an array from 1 to the highest number, converting each number to a string
-    return Array.from({ length: highestNumber }, (_, index) => String(index + 1));
+    return Array.from({ length: highestNumber }, (_, index) =>
+      String(index + 1)
+    );
   };
   const prepareAttendanceTableData = (lectureWiseAttend) => {
     // Get all unique student IDs
