@@ -25,6 +25,7 @@ import {
 import LoadingButton from "@mui/lab/LoadingButton";
 import { Insights } from "@mui/icons-material";
 import { LectureAttendanceTable } from "../components/table/LectureAttendanceTable";
+import TestAnalytics from "../components/table/TestAnalytics";
 
 const Analytics = () => {
   const { token } = useContext(AppContext);
@@ -48,6 +49,8 @@ const Analytics = () => {
   const [formattedAttendanceArray, setFormattedAttendanceArray] = useState([]);
   // analytics data
   const [lectureWiseAttendance, setLectureWiseAttendance] = useState([]);
+  const [questionAnalytics, setQuestionAnalytics] = useState([]);
+  const [studentScores, setStudentScores] = useState([]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -161,6 +164,8 @@ const Analytics = () => {
       setLectureWiseAttendance(res.data.data);
       setCoordinatorNames(res.data.coordinatorNames);
       setFormattedAttendanceArray(res.data.formattedAttendanceArray);
+      setQuestionAnalytics(res.data.questionAnalytics);
+      setStudentScores(res.data.studentScores);
     } catch (err) {
       console.log(err);
       setLectureWiseAttendance([]);
@@ -274,13 +279,17 @@ const Analytics = () => {
                     {attendance.coordinator}
                   </Typography>
                   <LectureAttendanceTable
-                    // attendanceTable={attendanceTable}
-                    // lectureHeaders={lectureHeaders}
                     formattedAttendanceArray={attendance.attendances}
                   />
                 </div>
               ))}
           </Paper>
+        </Grid>
+        <Grid item xs={12}>
+          <TestAnalytics
+            questionData={questionAnalytics}
+            studentScores={studentScores}
+          />
         </Grid>
       </Grid>
     </Container>

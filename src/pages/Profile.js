@@ -1,4 +1,5 @@
 import React, { useState, useRef, useContext } from "react";
+import { uploadPicture } from "../firebase";
 import axios from "axios";
 import { Helmet } from "react-helmet";
 // contexts
@@ -6,11 +7,18 @@ import AppContext from "../contexts/AppContext";
 // components
 import Loader from "../components/Loader";
 // constants
-import { UPLOAD_URL } from "../constants/urls";
 import { COMPANY } from "../constants/vars";
-import { FILE_UPLOAD_ENDPOINT, USER_EDIT_ENDPOINT } from "../constants/endpoints";
+import { USER_EDIT_ENDPOINT } from "../constants/endpoints";
 // mui
-import { Paper, Box, Grid, Button, TextField, Typography, CardMedia } from "@mui/material";
+import {
+  Paper,
+  Box,
+  Grid,
+  Button,
+  TextField,
+  Typography,
+  CardMedia,
+} from "@mui/material";
 import LoadingButton from "@mui/lab/LoadingButton";
 import { SyncAlt, Edit } from "@mui/icons-material";
 
@@ -23,64 +31,38 @@ const Profile = () => {
   const [isEditable, setIsEditable] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [coverPic, setCoverPic] = useState(null);
-
+  console.log("user", user);
   const handleEdit = () => {
     setIsEditable(true);
     window.scrollTo(0, 0);
   };
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
     if (formRef.current) {
       const edits = {},
         formData = new FormData(formRef.current);
       if (profilePic) {
-        const picData = new FormData();
-        const fileName = user.role + "." + user.email + ".profile." + profilePic.name.split(".").at(-1);
-        edits["profilePic"] = fileName;
-        picData.append("files", profilePic, fileName);
-        try {
-          setIsLoading(true);
-          axios
-            .post(FILE_UPLOAD_ENDPOINT, picData, { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => {
-              setIsLoading(false);
-            })
-            .catch((err) => {
-              alert("Something went wrong! Profile Picture couldn't be uploaded.");
-              setIsLoading(false);
-            });
-        } catch (err) {
-          alert("Something went wrong! Profile Picture couldn't be uploaded.");
-          setIsLoading(false);
-        }
+        setIsLoading(true);
+        const url = await uploadPicture(profilePic, "profile-pic");
+        console.log("Uploaded picture URL:", url);
+        edits["profilePic"] = url;
       }
       if (coverPic) {
-        const picData = new FormData();
-        const fileName = user.role + "." + user.email + ".cover." + coverPic.name.split(".").at(-1);
-        edits["coverPic"] = fileName;
-        picData.append("files", coverPic, fileName);
-        try {
-          setIsLoading(true);
-          axios
-            .post(FILE_UPLOAD_ENDPOINT, picData, { headers: { Authorization: `Bearer ${token}` } })
-            .then((res) => {
-              setIsLoading(false);
-            })
-            .catch((err) => {
-              alert("Something went wrong! Cover Picture couldn't be uploaded.");
-              setIsLoading(false);
-            });
-        } catch (err) {
-          alert("Something went wrong! Cover Picture couldn't be uploaded.");
-          setIsLoading(false);
-        }
+        setIsLoading(true);
+        const url = await uploadPicture(coverPic, "cover-pic");
+        console.log("Uploaded picture URL:", url);
+        edits["coverPic"] = url;
       }
       formData.forEach((value, key) => (edits[key] = value)); // FormData to JS object
       try {
         setIsLoading(true);
         axios
-          .patch(USER_EDIT_ENDPOINT, { query: { _id: user._id }, edits }, { headers: { Authorization: `Bearer ${token}` } })
+          .patch(
+            USER_EDIT_ENDPOINT,
+            { query: { _id: user._id }, edits },
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
           .then((res) => {
             alert("Your profile has been updated!");
             setUser((user) => ({ ...user, ...edits }));
@@ -114,7 +96,9 @@ const Profile = () => {
       setIsEditable(true);
     } else {
       setProfilePic(null);
-      alert("Invalid file type! Upload an 'image' file as your profile picture.");
+      alert(
+        "Invalid file type! Upload an 'image' file as your profile picture."
+      );
     }
   };
 
@@ -135,44 +119,135 @@ const Profile = () => {
                 <form onSubmit={handleUpdate} ref={formRef}>
                   <Grid container spacing={3}>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.name} name="name" label="Name" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.name}
+                        name="name"
+                        label="Name"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: true }} defaultValue={user.role} label="Role" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: true }}
+                        defaultValue={user.role}
+                        label="Role"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.contact} name="contact" label="Contact" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.contact}
+                        name="contact"
+                        label="Contact"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: true }} defaultValue={user.email} name="email" label="Email Address" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: true }}
+                        defaultValue={user.email}
+                        name="email"
+                        label="Email Address"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.address1} name="address1" label="Address line 1" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.address1}
+                        name="address1"
+                        label="Address line 1"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12}>
-                      <TextField inputProps={{ disabled: !isEditable }} defaultValue={user.address2} name="address2" label="Address line 2" fullWidth variant="standard" />
+                      <TextField
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.address2}
+                        name="address2"
+                        label="Address line 2"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.city} name="city" label="City" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.city}
+                        name="city"
+                        label="City"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.state} name="state" label="State/Province/Region" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.state}
+                        name="state"
+                        label="State/Province/Region"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.zip} name="zip" label="Zip / Postal code" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.zip}
+                        name="zip"
+                        label="Zip / Postal code"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                     <Grid item xs={12} sm={6}>
-                      <TextField required inputProps={{ disabled: !isEditable }} defaultValue={user.country} name="country" label="Country" fullWidth variant="standard" />
+                      <TextField
+                        required
+                        inputProps={{ disabled: !isEditable }}
+                        defaultValue={user.country}
+                        name="country"
+                        label="Country"
+                        fullWidth
+                        variant="standard"
+                      />
                     </Grid>
                   </Grid>
-                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Box
+                    sx={{ display: "flex", justifyContent: "space-between" }}
+                  >
                     {isEditable ? (
-                      <LoadingButton loading={isLoading} type="submit" variant="contained" startIcon={<SyncAlt />} sx={{ mt: 3 }}>
+                      <LoadingButton
+                        loading={isLoading}
+                        type="submit"
+                        variant="contained"
+                        startIcon={<SyncAlt />}
+                        sx={{ mt: 3 }}
+                      >
                         Update Profile
                       </LoadingButton>
                     ) : null}
                     {!isEditable ? (
-                      <Button variant="contained" startIcon={<Edit />} sx={{ mt: 3 }} onClick={() => handleEdit()}>
+                      <Button
+                        variant="contained"
+                        startIcon={<Edit />}
+                        sx={{ mt: 3 }}
+                        onClick={() => handleEdit()}
+                      >
                         Edit Profile
                       </Button>
                     ) : null}
@@ -183,7 +258,13 @@ const Profile = () => {
                 <Typography variant="h6" gutterBottom>
                   Media
                 </Typography>
-                <input onChange={handleCoverPic} accept="image/*" ref={coverPicRef} type="file" hidden />
+                <input
+                  onChange={handleCoverPic}
+                  accept="image/*"
+                  ref={coverPicRef}
+                  type="file"
+                  hidden
+                />
                 <CardMedia
                   onClick={() => coverPicRef?.current?.click()}
                   component="img"
@@ -195,10 +276,16 @@ const Profile = () => {
                     "&:hover": { filter: "brightness(0.75)" },
                   }}
                   loading="lazy"
-                  src={coverPic ? URL.createObjectURL(coverPic) : UPLOAD_URL + user.coverPic}
+                  src={coverPic ? URL.createObjectURL(coverPic) : user.coverPic}
                   alt=""
                 />
-                <input onChange={handleProfilePic} accept="image/*" ref={profilePicRef} type="file" hidden />
+                <input
+                  onChange={handleProfilePic}
+                  accept="image/*"
+                  ref={profilePicRef}
+                  type="file"
+                  hidden
+                />
                 <CardMedia
                   onClick={() => profilePicRef?.current?.click()}
                   component="img"
@@ -217,7 +304,11 @@ const Profile = () => {
                     "&:hover": { filter: "brightness(0.75)" },
                   }}
                   loading="lazy"
-                  src={profilePic ? URL.createObjectURL(profilePic) : UPLOAD_URL + user.profilePic}
+                  src={
+                    profilePic
+                      ? URL.createObjectURL(profilePic)
+                      : user.profilePic
+                  }
                   alt=""
                 />
               </Grid>

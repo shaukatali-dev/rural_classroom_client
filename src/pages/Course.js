@@ -19,7 +19,6 @@ import {
   COURSE_GET_ENDPOINT,
   LECTURE_GET_ENDPOINT,
   LECTURE_NEW_ENDPOINT,
-  FILE_UPLOAD_ENDPOINT,
   ATTENDANCE_NEW_ENDPOINT,
   MATERIAL_GET_ENDPOINT,
   MATERIAL_NEW_ENDPOINT,
@@ -31,7 +30,6 @@ import {
   DOUBT_GET_ENDPOINT,
   DOUBT_NEW_ENDPOINT,
 } from "../constants/endpoints";
-import { UPLOAD_URL } from "../constants/urls";
 //utils
 import { truncate } from "../utils";
 // apis
@@ -82,6 +80,7 @@ import {
   PanTool,
   QuestionAnswer,
 } from "@mui/icons-material";
+import { uploadFile } from "../firebase";
 // vars
 const socket = io(BASE);
 
@@ -250,52 +249,52 @@ const Course = () => {
         setChartData([{ doubts: 0, time: 0.0 }]);
       }
       // get test
-      try {
-        const query = { lecture: lecture._id };
-        axios
-          .get(TEST_GET_ENDPOINT, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { query: JSON.stringify(query) },
-          })
-          .then((res) => {
-            if (res.data.data.length) {
-              setTest(res.data.data[0]);
-              // fetch questions
-              try {
-                const query = { _id: { $in: res.data.data[0].questions } };
-                axios
-                  .get(QUESTION_GET_ENDPOINT, {
-                    headers: { Authorization: `Bearer ${token}` },
-                    params: { query: JSON.stringify(query) },
-                  })
-                  .then((res) => {
-                    if (res.data.data.length) {
-                      setTestQuestion(res.data.data[0]);
-                      setTestQuestions(res.data.data);
-                    } else {
-                      setTestQuestion(null);
-                      setTestQuestions([]);
-                    }
-                  })
-                  .catch((err) => {
-                    console.log(err);
-                    setTestQuestion(null);
-                    setTestQuestions(null);
-                  });
-              } catch (err) {
-                console.log(err);
-                setTestQuestions(null);
-              }
-            } else setTest(null);
-          })
-          .catch((err) => {
-            console.log(err);
-            setTest(null);
-          });
-      } catch (err) {
-        console.log(err);
-        setTest(null);
-      }
+      // try {
+      //   const query = { lecture: lecture._id };
+      //   axios
+      //     .get(TEST_GET_ENDPOINT, {
+      //       headers: { Authorization: `Bearer ${token}` },
+      //       params: { query: JSON.stringify(query) },
+      //     })
+      //     .then((res) => {
+      //       if (res.data.data.length) {
+      //         setTest(res.data.data[0]);
+      //         // fetch questions
+      //         try {
+      //           const query = { _id: { $in: res.data.data[0].questions } };
+      //           axios
+      //             .get(QUESTION_GET_ENDPOINT, {
+      //               headers: { Authorization: `Bearer ${token}` },
+      //               params: { query: JSON.stringify(query) },
+      //             })
+      //             .then((res) => {
+      //               if (res.data.data.length) {
+      //                 setTestQuestion(res.data.data[0]);
+      //                 setTestQuestions(res.data.data);
+      //               } else {
+      //                 setTestQuestion(null);
+      //                 setTestQuestions([]);
+      //               }
+      //             })
+      //             .catch((err) => {
+      //               console.log(err);
+      //               setTestQuestion(null);
+      //               setTestQuestions(null);
+      //             });
+      //         } catch (err) {
+      //           console.log(err);
+      //           setTestQuestions(null);
+      //         }
+      //       } else setTest(null);
+      //     })
+      //     .catch((err) => {
+      //       console.log(err);
+      //       setTest(null);
+      //     });
+      // } catch (err) {
+      //   console.log(err);
+      //   setTest(null);
+      // }
     }
   }, [lecture]);
 
@@ -483,63 +482,38 @@ const Course = () => {
     e.preventDefault();
     const data = {};
     new FormData(e.target).forEach((value, key) => (data[key] = value));
-    // upload files
-    const formData = new FormData(),
-      fileNames = [];
-    // change file name for each file before uploading
-    materialFiles.forEach((file, index) => {
-      const fileName =
-        user.role +
-        "." +
-        user.email +
-        ".material." +
-        data.name +
-        "." +
-        index +
-        "." +
-        file.name.split(".").at(-1);
-      fileNames.push(fileName);
-      formData.append("files", file, fileName);
-    });
+
+    const formData = new FormData();
+    const fileNames = [];
+    setIsLoading(true);
+
     try {
-      setIsLoading(true);
-      axios
-        .post(FILE_UPLOAD_ENDPOINT, formData, {
+      // Upload files and collect file names
+      for (let i = 0; i < materialFiles.length; i++) {
+        const file = materialFiles[i];
+        const url = await uploadFile(file, "materials-file");
+        formData.append("file" + i, url);
+        fileNames.push(url);
+      }
+
+      if (fileNames.length) {
+        const materialData = {
+          name: data["name"],
+          files: fileNames,
+          course: courseId,
+        };
+
+        const response = await axios.post(MATERIAL_NEW_ENDPOINT, materialData, {
           headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => {
-          const urls = Object.values(res.data.data);
-          if (urls.length) {
-            const materialData = {};
-            materialData["name"] = data["name"];
-            materialData["files"] = fileNames;
-            materialData["course"] = courseId;
-            axios
-              .post(MATERIAL_NEW_ENDPOINT, materialData, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-              .then((res) => {
-                setMaterials(res.data.data.files);
-                setMaterialsOpen(false);
-                setIsLoading(false);
-              })
-              .catch((err) => {
-                alert("Your study materials have NOT been uploaded!");
-                setMaterialsFiles([]);
-                setMaterialsOpen(false);
-                setIsLoading(false);
-              });
-          }
-        })
-        .catch((err) => {
-          alert("Your study materials have NOT been uploaded!");
-          setMaterialsFiles([]);
-          setMaterialsOpen(false);
-          setIsLoading(false);
         });
+
+        setMaterials(response.data.data.files);
+        setMaterialsOpen(false);
+      }
     } catch (err) {
       alert("Your study materials have NOT been uploaded!");
       setMaterialsFiles([]);
+    } finally {
       setMaterialsOpen(false);
       setIsLoading(false);
     }
@@ -550,6 +524,7 @@ const Course = () => {
       const time = await youtubeRef.current.internalPlayer.getCurrentTime();
       socket.emit("doubts", { room: courseId, doubts, time });
       setDoubtsOpen(false);
+      setResponses([]);
       setCapturedImage(null);
       alert("Doubts have been raised!");
       // store doubts
@@ -585,6 +560,7 @@ const Course = () => {
               coordinator: user?._id,
               lecture: lecture._id,
               attendence,
+              course: courseId,
               percentage: (studentPresent.length / classStrength) * 100,
             },
             { headers: { Authorization: `Bearer ${token}` } }
@@ -592,52 +568,56 @@ const Course = () => {
           .then(() => {
             setStudentPresent([]);
             setDoubtsOpen(false);
+            setResponses([]);
             setCapturedImage(null);
             alert("Attendance has been taken!");
           })
           .catch((err) => {
             setDoubtsOpen(false);
+            setResponses([]);
             alert("Attendance has NOT been taken!");
           });
       } catch (err) {
         setDoubtsOpen(false);
+        setResponses([]);
         alert("Attendance has NOT been taken!");
         console.log(err);
       }
     }
   };
 
-  const handleResponses = () => {
-    if (responses.length && test && testQuestion) {
-      try {
-        const processedResponses = responses
-          .map((response) => ({
-            test: test?._id,
-            question: testQuestion._id,
-            student: user?._id + "_" + response[0],
-            response: testQuestion.options.find((q) => q.key === response[1])
-              ?.value,
-          }))
-          .filter((response) => response.response && response.student);
-        axios
-          .post(RESPONSE_NEWS_ENDPOINT, processedResponses, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          .then((res) => {
-            if (res.data.data) {
-              setResponsesOpen(false);
-              setCapturedImage(null);
-              setDoubtsOpen(false);
-              alert("Your responses have been uploaded!");
-            } else {
-              alert("Your responses have NOT been uploaded!");
-            }
-          });
-      } catch (err) {
-        alert("Your responses have NOT been uploaded!");
-      }
-    }
-  };
+  // const handleResponses = () => {
+  //   if (responses.length && test && testQuestion) {
+  //     try {
+  //       const processedResponses = responses
+  //         .map((response) => ({
+  //           test: test?._id,
+  //           question: testQuestion._id,
+  //           student: user?._id + "_" + response[0],
+  //           response: testQuestion.options.find((q) => q.key === response[1])
+  //             ?.value,
+  //         }))
+  //         .filter((response) => response.response && response.student);
+  //       axios
+  //         .post(RESPONSE_NEWS_ENDPOINT, processedResponses, {
+  //           headers: { Authorization: `Bearer ${token}` },
+  //         })
+  //         .then((res) => {
+  //           if (res.data.data) {
+  //             setResponsesOpen(false);
+  //             setCapturedImage(null);
+  //             setDoubtsOpen(false);
+  //             setResponses([]);
+  //             alert("Your responses have been uploaded!");
+  //           } else {
+  //             alert("Your responses have NOT been uploaded!");
+  //           }
+  //         });
+  //     } catch (err) {
+  //       alert("Your responses have NOT been uploaded!");
+  //     }
+  //   }
+  // };
 
   const handleDoubtsCapture = async () => {
     if (doubts) handleDoubts(doubts);
@@ -717,79 +697,79 @@ const Course = () => {
     }
   };
 
-  const handleResponsesCapture = async () => {
-    try {
-      if (test && testQuestion) {
-        setIsLoading(true);
-        let imageBlob;
+  // const handleResponsesCapture = async () => {
+  //   try {
+  //     if (test && testQuestion) {
+  //       setIsLoading(true);
+  //       let imageBlob;
 
-        // Check if there's an uploaded image or capture a new one
-        if (uploadedImage) {
-          imageBlob = uploadedImage;
-        } else {
-          try {
-            const capturedImage = myStreamRef.current.getScreenshot();
-            imageBlob = await fetch(capturedImage).then((r) => r.blob());
-          } catch (error) {
-            console.error("Error capturing image:", error);
-            setIsLoading(false);
-            return; // Exit if image capture fails
-          }
-        }
+  //       // Check if there's an uploaded image or capture a new one
+  //       if (uploadedImage) {
+  //         imageBlob = uploadedImage;
+  //       } else {
+  //         try {
+  //           const capturedImage = myStreamRef.current.getScreenshot();
+  //           imageBlob = await fetch(capturedImage).then((r) => r.blob());
+  //         } catch (error) {
+  //           console.error("Error capturing image:", error);
+  //           setIsLoading(false);
+  //           return; // Exit if image capture fails
+  //         }
+  //       }
 
-        // Create FormData for the image and roll numbers
-        const formData = new FormData();
-        formData.append("file", imageBlob, "attendance_image.png");
+  //       // Create FormData for the image and roll numbers
+  //       const formData = new FormData();
+  //       formData.append("file", imageBlob, "attendance_image.png");
 
-        let allStudentRoll = [];
-        for (let i = 0; i < classStrength; i++) {
-          allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
-        }
+  //       let allStudentRoll = [];
+  //       for (let i = 0; i < classStrength; i++) {
+  //         allStudentRoll.push(i + 1); // Assuming roll numbers start from 1
+  //       }
 
-        // Filter out roll numbers that are already in the responses array
-        const rollNumbersToSend = allStudentRoll.filter(
-          (rollNumber) => !responses.some((res) => res[0] === rollNumber)
-        );
+  //       // Filter out roll numbers that are already in the responses array
+  //       const rollNumbersToSend = allStudentRoll.filter(
+  //         (rollNumber) => !responses.some((res) => res[0] === rollNumber)
+  //       );
 
-        // Log for debugging
-        console.log("rollNumbersToSend:", rollNumbersToSend);
+  //       // Log for debugging
+  //       console.log("rollNumbersToSend:", rollNumbersToSend);
 
-        // Append roll numbers to FormData
-        formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
+  //       // Append roll numbers to FormData
+  //       formData.append("rollNumbers", JSON.stringify(rollNumbersToSend));
 
-        // Send the image and roll numbers to the server
-        const response = await fetch(`${BASEML}/mcq-analysis`, {
-          method: "POST",
-          body: formData,
-        });
+  //       // Send the image and roll numbers to the server
+  //       const response = await fetch(`${BASEML}/mcq-analysis`, {
+  //         method: "POST",
+  //         body: formData,
+  //       });
 
-        // Check if the response is okay
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.statusText}`);
-        }
+  //       // Check if the response is okay
+  //       if (!response.ok) {
+  //         throw new Error(`Server error: ${response.statusText}`);
+  //       }
 
-        // Parse the server response
-        const data = await response.json();
-        const responseAnalysis = data.extracted_mcq_with_roll;
+  //       // Parse the server response
+  //       const data = await response.json();
+  //       const responseAnalysis = data.extracted_mcq_with_roll;
 
-        // Filter out responses that are already in the state
-        const filteredResponseAnalysis = responseAnalysis.filter(
-          (res) => !responses.some((prev) => prev[0] === res[0])
-        );
+  //       // Filter out responses that are already in the state
+  //       const filteredResponseAnalysis = responseAnalysis.filter(
+  //         (res) => !responses.some((prev) => prev[0] === res[0])
+  //       );
 
-        // Update the responses state
-        setResponses([...responses, ...filteredResponseAnalysis]);
+  //       // Update the responses state
+  //       setResponses([...responses, ...filteredResponseAnalysis]);
 
-        // Reset the state after processing
-        setUploadedImage(null);
-      }
-    } catch (error) {
-      console.error("Error during response capture:", error);
-      alert("An error occurred while capturing responses. Please try again.");
-    } finally {
-      setIsLoading(false); // Stop loading in both success and failure cases
-    }
-  };
+  //       // Reset the state after processing
+  //       setUploadedImage(null);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error during response capture:", error);
+  //     alert("An error occurred while capturing responses. Please try again.");
+  //   } finally {
+  //     setIsLoading(false); // Stop loading in both success and failure cases
+  //   }
+  // };
 
   useEffect(() => {
     console.log("responses", responses);
@@ -1065,7 +1045,7 @@ const Course = () => {
                 <Box sx={{ width: "100%", p: 1, pt: 2 }}>
                   {materials.map((material, index) => (
                     <Badge
-                      onClick={() => window.open(UPLOAD_URL + material)}
+                      onClick={() => window.open(material)}
                       badgeContent={materials.length - index}
                       color="secondary"
                       sx={{ mr: 2, cursor: "pointer" }}
@@ -1221,7 +1201,10 @@ const Course = () => {
       </Dialog>
       <Dialog
         open={doubtsOpen}
-        onClose={() => setDoubtsOpen(false)}
+        onClose={() => {
+          setDoubtsOpen(false);
+          setResponses([]);
+        }}
         PaperComponent={PaperComponent}
       >
         <DialogTitle style={{ cursor: "move" }} id="draggable-dialog-title">
@@ -1230,7 +1213,10 @@ const Course = () => {
           </Typography>
         </DialogTitle>
         <IconButton
-          onClick={() => setDoubtsOpen(false)}
+          onClick={() => {
+            setDoubtsOpen(false);
+            setResponses([]);
+          }}
           sx={{
             position: "absolute",
             right: 8,
@@ -1300,7 +1286,7 @@ const Course = () => {
                     </LoadingButton>
                   </Stack>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                {/* <Grid item xs={12} sm={4}>
                   <Stack spacing={2}>
                     <Autocomplete
                       fullWidth
@@ -1328,7 +1314,7 @@ const Course = () => {
                       Responses
                     </LoadingButton>
                   </Stack>
-                </Grid>
+                </Grid> */}
                 <Grid item xs={12} sm={12}>
                   <Stack spacing={1}>
                     <input
@@ -1413,7 +1399,7 @@ const Course = () => {
                     </Stack>
                   </Grid>
                 )}
-                {responses.length !== 0 && (
+                {/* {responses.length !== 0 && (
                   <Grid item xs={12} sm={12}>
                     <Stack spacing={2}>
                       <LoadingButton
@@ -1428,7 +1414,7 @@ const Course = () => {
                       </LoadingButton>
                     </Stack>
                   </Grid>
-                )}
+                )} */}
               </Grid>
             </Grid>
             <Grid item xs={12} sm={6}></Grid>
@@ -1517,7 +1503,7 @@ const Course = () => {
                     </IconButton>
                   </Tooltip>
                 </Stack>
-                <Stack direction="row" flex={1}>
+                {/* <Stack direction="row" flex={1}>
                   <Autocomplete
                     fullWidth
                     value={testQuestion}
@@ -1538,7 +1524,7 @@ const Course = () => {
                       <QuestionAnswer onClick={handleResponsesCapture} />
                     </IconButton>
                   </Tooltip>
-                </Stack>
+                </Stack> */}
               </Stack>
               <Tooltip title="Close">
                 <IconButton>
