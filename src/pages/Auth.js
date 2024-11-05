@@ -156,6 +156,7 @@ const AuthUser = () => {
               // resets
               setIsLoading(false);
               setOtpErr("");
+              setIsOtpSent(false);
               navigate(HOME_ROUTE);
             }
           })

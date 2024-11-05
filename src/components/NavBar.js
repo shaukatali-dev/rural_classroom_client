@@ -2,12 +2,20 @@ import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 // constants
 import { COMPANY, COMPANY2, LOCALSTORAGE } from "../constants/vars";
-import { UPLOAD_URL } from "../constants/urls";
 import { AUTH_ROUTE, PROFILE_ROUTE } from "../constants/routes";
 // contexts
 import AppContext from "../contexts/AppContext";
 // mui
-import { AppBar as MuiAppBar, Stack, Toolbar, IconButton, Typography, Avatar, Menu, MenuItem } from "@mui/material";
+import {
+  AppBar as MuiAppBar,
+  Stack,
+  Toolbar,
+  IconButton,
+  Typography,
+  Avatar,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import styled from "@mui/material/styles/styled";
 import MenuIcon from "@mui/icons-material/Menu";
 import PixIcon from "@mui/icons-material/Pix";
@@ -70,7 +78,12 @@ const NavBar = ({ open, toggleDrawer }) => {
         >
           <MenuIcon />
         </IconButton>
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ flexGrow: 1 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{ flexGrow: 1 }}
+        >
           <PixIcon fontSize="large" />
           <Stack>
             <Typography component="h1" variant="h6" color="inherit" noWrap>
@@ -81,8 +94,11 @@ const NavBar = ({ open, toggleDrawer }) => {
             </Typography>
           </Stack>
         </Stack>
-        <IconButton onClick={(e) => setProfileAnchor(e.currentTarget)} sx={{ p: 0 }}>
-          <Avatar alt="Remy Sharp" src={UPLOAD_URL + user?.profilePic} />
+        <IconButton
+          onClick={(e) => setProfileAnchor(e.currentTarget)}
+          sx={{ p: 0 }}
+        >
+          <Avatar alt="Remy Sharp" src={user?.profilePic} />
         </IconButton>
         <Menu
           sx={{ mt: "45px" }}
